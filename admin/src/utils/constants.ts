@@ -71,11 +71,14 @@ export const FLAG_TYPES = [
 
 // ── Logto OIDC ───────────────────────────────────────────────────────
 export const LOGTO_ENDPOINT =
-  import.meta.env.VITE_LOGTO_ENDPOINT ?? "http://localhost:3301";
+  import.meta.env.VITE_LOGTO_ENDPOINT ?? "http://localhost:3001";
 export const LOGTO_APP_ID =
-  import.meta.env.VITE_LOGTO_APP_ID ?? "admin-app";
+  import.meta.env.VITE_LOGTO_APP_ID ?? "unjynx-admin-web";
+
+const basePath = import.meta.env.BASE_URL ?? "/admin/";
+const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3001";
 export const LOGTO_REDIRECT_URI =
-  import.meta.env.VITE_LOGTO_REDIRECT_URI ?? "http://localhost:3001/callback";
+  import.meta.env.VITE_LOGTO_REDIRECT_URI ?? `${origin}${basePath}callback`;
 
 // ── Sidebar Menu Keys ────────────────────────────────────────────────
 export const MENU_KEYS = {
