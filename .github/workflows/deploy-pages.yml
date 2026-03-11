@@ -47,8 +47,8 @@ jobs:
         working-directory: admin
         run: pnpm build
         env:
-          VITE_API_URL: http://91.98.75.122/api/v1
-          VITE_LOGTO_ENDPOINT: http://91.98.75.122/oidc
+          VITE_API_URL: https://api.unjynx.me/api/v1
+          VITE_LOGTO_ENDPOINT: https://auth.unjynx.me
           VITE_LOGTO_APP_ID: unjynx-admin-web
 
       - name: Merge builds into single output
