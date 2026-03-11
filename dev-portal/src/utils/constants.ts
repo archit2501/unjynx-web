@@ -44,7 +44,7 @@ export const THEME_TOKEN = {
 // API Config
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL ?? "http://localhost:3000";
-export const API_PREFIX = "/api/v1/admin";
+export const API_PREFIX = "/api/v1/dev-portal";
 
 // Grafana Config
 export const GRAFANA_BASE_URL =
@@ -60,11 +60,15 @@ export const GRAFANA_DASHBOARDS = {
 } as const;
 
 // Logto OIDC Config
+const logtoEndpoint = import.meta.env.VITE_LOGTO_ENDPOINT ?? "http://localhost:3001";
+const basePath = import.meta.env.BASE_URL ?? "/dev/";
+const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3002";
+
 export const LOGTO_CONFIG = {
-  authority: import.meta.env.VITE_LOGTO_AUTHORITY ?? "http://localhost:3301/oidc",
-  clientId: import.meta.env.VITE_LOGTO_CLIENT_ID ?? "dev-portal-client",
-  redirectUri: import.meta.env.VITE_LOGTO_REDIRECT ?? "http://localhost:3002/callback",
-  postLogoutRedirectUri: "http://localhost:3002",
+  authority: `${logtoEndpoint}/oidc`,
+  clientId: import.meta.env.VITE_LOGTO_APP_ID ?? "unjynx-dev-portal",
+  redirectUri: `${origin}${basePath}callback`,
+  postLogoutRedirectUri: `${origin}${basePath}`,
   scopes: ["openid", "profile", "email", "roles"],
 } as const;
 
