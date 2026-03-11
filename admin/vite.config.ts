@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 
 export default defineConfig({
-  base: "/admin/",
+  base: "/unjynx-web/admin/",
   plugins: [react()],
   resolve: {
     alias: {

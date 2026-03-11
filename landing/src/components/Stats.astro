@@ -1,0 +1,47 @@
+---
+const stats = [
+  { value: '2,000+', label: 'Early access users', suffix: '' },
+  { value: '7', label: 'Notification channels', suffix: '' },
+  { value: '60+', label: 'Wisdom categories', suffix: '' },
+  { value: '99.9%', label: 'Uptime SLA', suffix: '' },
+];
+
+const logos = ['Notion', 'Linear', 'Figma', 'Slack', 'GitHub'];
+---
+
+<section class="relative py-20 sm:py-24 overflow-hidden">
+  <!-- Background -->
+  <div class="absolute inset-0 bg-midnight"></div>
+  <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet/10 to-transparent"></div>
+  <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet/10 to-transparent"></div>
+
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Stats row -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 reveal-children">
+      {stats.map((stat) => (
+        <div class="text-center lg:text-left group">
+          <p class="font-heading font-black text-4xl sm:text-5xl text-purple-mist mb-2 group-hover:text-gold transition-colors duration-500">
+            {stat.value}
+          </p>
+          <p class="font-body text-sm text-purple-mist/60">
+            {stat.label}
+          </p>
+        </div>
+      ))}
+    </div>
+
+    <!-- Integrations hint -->
+    <div class="mt-16 pt-12 border-t border-white/[0.03] reveal">
+      <p class="font-body text-xs text-purple-mist/20 text-center mb-8 uppercase tracking-[0.2em]">
+        Plays well with tools you already use
+      </p>
+      <div class="flex items-center justify-center gap-10 sm:gap-16">
+        {logos.map((logo) => (
+          <span class="font-heading font-semibold text-sm sm:text-base text-purple-mist/[0.12] hover:text-purple-mist/25 transition-colors duration-500 cursor-default">
+            {logo}
+          </span>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>

@@ -24,6 +24,16 @@ export default {
         'slide-up': 'slideUp 0.6s ease-out forwards',
         'glow-pulse': 'glowPulse 3s ease-in-out infinite',
         'float': 'float 6s ease-in-out infinite',
+        'marquee': 'marquee 40s linear infinite',
+        'marquee-reverse': 'marquee-reverse 35s linear infinite',
+        'orbit': 'orbit 20s linear infinite',
+        'orbit-reverse': 'orbit-reverse 25s linear infinite',
+        'shimmer': 'shimmer 2.5s ease-in-out infinite',
+        'grain': 'grain 8s steps(10) infinite',
+        'count-up': 'countUp 0.4s ease-out forwards',
+        'draw-line': 'drawLine 1.5s ease-out forwards',
+        'scale-in': 'scaleIn 0.5s ease-out forwards',
+        'blur-in': 'blurIn 0.6s ease-out forwards',
       },
       keyframes: {
         fadeIn: {
@@ -41,6 +51,54 @@ export default {
         float: {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-10px)' },
+        },
+        marquee: {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+        'marquee-reverse': {
+          '0%': { transform: 'translateX(-50%)' },
+          '100%': { transform: 'translateX(0)' },
+        },
+        orbit: {
+          '0%': { transform: 'rotate(0deg) translateX(140px) rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg) translateX(140px) rotate(-360deg)' },
+        },
+        'orbit-reverse': {
+          '0%': { transform: 'rotate(0deg) translateX(180px) rotate(0deg)' },
+          '100%': { transform: 'rotate(-360deg) translateX(180px) rotate(360deg)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        grain: {
+          '0%, 100%': { transform: 'translate(0, 0)' },
+          '10%': { transform: 'translate(-5%, -10%)' },
+          '20%': { transform: 'translate(-15%, 5%)' },
+          '30%': { transform: 'translate(7%, -25%)' },
+          '40%': { transform: 'translate(-5%, 25%)' },
+          '50%': { transform: 'translate(-15%, 10%)' },
+          '60%': { transform: 'translate(15%, 0%)' },
+          '70%': { transform: 'translate(0%, 15%)' },
+          '80%': { transform: 'translate(3%, 35%)' },
+          '90%': { transform: 'translate(-10%, 10%)' },
+        },
+        countUp: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        drawLine: {
+          '0%': { strokeDashoffset: '100' },
+          '100%': { strokeDashoffset: '0' },
+        },
+        scaleIn: {
+          '0%': { opacity: '0', transform: 'scale(0.9)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        blurIn: {
+          '0%': { opacity: '0', filter: 'blur(10px)' },
+          '100%': { opacity: '1', filter: 'blur(0)' },
         },
       },
     },
