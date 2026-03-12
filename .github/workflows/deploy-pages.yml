@@ -47,9 +47,21 @@ jobs:
         working-directory: admin
         run: pnpm build
         env:
-          VITE_API_URL: https://api.unjynx.me/api/v1
+          VITE_API_URL: https://api.unjynx.me
           VITE_LOGTO_ENDPOINT: https://auth.unjynx.me
           VITE_LOGTO_APP_ID: unjynx-admin-web
+
+      - name: Install dev-portal dependencies
+        working-directory: dev-portal
+        run: pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+
+      - name: Build dev portal (Vite)
+        working-directory: dev-portal
+        run: pnpm build
+        env:
+          VITE_API_URL: https://api.unjynx.me
+          VITE_LOGTO_ENDPOINT: https://auth.unjynx.me
+          VITE_LOGTO_APP_ID: unjynx-dev-portal
 
       - name: Merge builds into single output
         run: |
@@ -57,6 +69,8 @@ jobs:
           cp -r landing/dist/* _site/
           mkdir -p _site/admin
           cp -r admin/dist/* _site/admin/
+          mkdir -p _site/dev
+          cp -r dev-portal/dist/* _site/dev/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
