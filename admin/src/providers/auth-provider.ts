@@ -6,6 +6,24 @@ const TOKEN_KEY = "unjynx_admin_token";
 const REFRESH_TOKEN_KEY = "unjynx_admin_refresh_token";
 const USER_KEY = "unjynx_admin_user";
 
+/**
+ * Maps backend role names (lowercase/underscore) to frontend AdminRole names (uppercase).
+ * Backend stores: "user", "super_admin", "dev_admin"
+ * Frontend expects: "SUPER_ADMIN", "CONTENT_MANAGER", "SUPPORT_AGENT", "VIEWER"
+ */
+const BACKEND_ROLE_MAP: Readonly<Record<string, AdminRole>> = {
+  super_admin: "SUPER_ADMIN",
+  dev_admin: "SUPER_ADMIN",     // dev_admin gets full admin access in admin panel
+  content_manager: "CONTENT_MANAGER",
+  support_agent: "SUPPORT_AGENT",
+  user: "VIEWER",
+};
+
+function mapBackendRole(backendRole: string | null | undefined): AdminRole {
+  if (!backendRole) return "VIEWER";
+  return BACKEND_ROLE_MAP[backendRole.toLowerCase()] ?? "VIEWER";
+}
+
 function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -80,7 +98,7 @@ export const authProvider: AuthProvider = {
         email: user.email,
         name: user.name ?? user.email,
         avatarUrl: user.avatarUrl,
-        role: (user.role as AdminRole) ?? "VIEWER",
+        role: mapBackendRole(user.role),
       };
 
       storeAuth(token, refreshToken, adminUser);
