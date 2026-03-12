@@ -54,7 +54,7 @@ export const UserDetail: React.FC<UserDetailProps> = ({
     queryOptions: { enabled: !!userId } as never,
   });
 
-  const { mutate: updateUser, isLoading: isSaving } = useUpdate();
+  const { mutate: updateUser, isPending: isSaving } = useUpdate();
 
   const { data: tasksData, isLoading: tasksLoading, refetch: refetchTasks } =
     useCustom<TaskSummary[]>({

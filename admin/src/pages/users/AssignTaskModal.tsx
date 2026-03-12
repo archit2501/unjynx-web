@@ -33,7 +33,7 @@ export const AssignTaskModal: React.FC<AssignTaskModalProps> = ({
   onSuccess,
 }) => {
   const [form] = Form.useForm<AssignTaskInput>();
-  const { mutate: assignTask, isLoading } = useCustomMutation();
+  const { mutate: assignTask, isPending: isLoading } = useCustomMutation();
 
   const handleSubmit = () => {
     form

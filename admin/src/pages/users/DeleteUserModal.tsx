@@ -35,7 +35,7 @@ export const DeleteUserModal: React.FC<DeleteUserModalProps> = ({
   onSuccess,
 }) => {
   const [confirmEmail, setConfirmEmail] = useState("");
-  const { mutate: deleteUser, isLoading } = useDelete();
+  const { mutate: deleteUser, isPending: isLoading } = useDelete();
 
   const isConfirmed =
     confirmEmail.trim().toLowerCase() === userEmail.trim().toLowerCase();

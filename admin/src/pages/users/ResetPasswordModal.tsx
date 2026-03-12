@@ -34,7 +34,7 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
     newPassword: string;
     confirmPassword: string;
   }>();
-  const { mutate: resetPassword, isLoading } = useCustomMutation();
+  const { mutate: resetPassword, isPending: isLoading } = useCustomMutation();
 
   const handleSubmit = () => {
     form

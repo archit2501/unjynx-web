@@ -27,7 +27,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   onSuccess,
 }) => {
   const [form] = Form.useForm<CreateUserInput & { confirmPassword: string }>();
-  const { mutate: createUser, isLoading } = useCreate();
+  const { mutate: createUser, isPending: isLoading } = useCreate();
 
   const handleSubmit = () => {
     form
