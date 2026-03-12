@@ -43,6 +43,42 @@ export interface UserRecord {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly tasksCount?: number;
+  readonly adminRole?: string;
+  readonly logtoId?: string;
+  readonly timezone?: string;
+}
+
+// ── App Admin Roles ──────────────────────────────────────────────────
+export type AppAdminRole = "user" | "super_admin" | "dev_admin";
+
+export interface UserStats {
+  readonly totalTasks: number;
+  readonly completedTasks: number;
+  readonly pendingTasks: number;
+}
+
+export interface TaskSummary {
+  readonly id: string;
+  readonly title: string;
+  readonly status: string;
+  readonly priority: string;
+  readonly dueDate: string | null;
+  readonly createdAt: string;
+}
+
+export interface CreateUserInput {
+  readonly email: string;
+  readonly password: string;
+  readonly name?: string;
+  readonly timezone?: string;
+  readonly adminRole?: AppAdminRole;
+}
+
+export interface AssignTaskInput {
+  readonly title: string;
+  readonly description?: string;
+  readonly priority?: string;
+  readonly dueDate?: string;
 }
 
 // ── Content ──────────────────────────────────────────────────────────

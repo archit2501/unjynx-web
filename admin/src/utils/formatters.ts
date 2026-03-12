@@ -69,6 +69,32 @@ export function planColor(
   return colorMap[plan] ?? "default";
 }
 
+export function adminRoleColor(role: string): string {
+  switch (role) {
+    case "super_admin": return "gold";
+    case "dev_admin": return "purple";
+    default: return "default";
+  }
+}
+
+export function adminRoleLabel(role: string): string {
+  switch (role) {
+    case "super_admin": return "Super Admin";
+    case "dev_admin": return "Dev Admin";
+    default: return "App User";
+  }
+}
+
+export function priorityColor(priority: string): string {
+  switch (priority) {
+    case "low": return "blue";
+    case "medium": return "orange";
+    case "high": return "red";
+    case "urgent": return "magenta";
+    default: return "default";
+  }
+}
+
 export function statusColor(
   status: string,
 ): "success" | "warning" | "error" | "processing" | "default" {

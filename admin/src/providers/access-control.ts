@@ -14,6 +14,7 @@ const PERMISSION_MATRIX: Record<string, readonly AdminRole[]> = {
   // Users
   "users:list": ["SUPER_ADMIN", "SUPPORT_AGENT", "VIEWER"],
   "users:show": ["SUPER_ADMIN", "SUPPORT_AGENT", "VIEWER"],
+  "users:create": ["SUPER_ADMIN"],
   "users:edit": ["SUPER_ADMIN"],
   "users:delete": ["SUPER_ADMIN"],
 

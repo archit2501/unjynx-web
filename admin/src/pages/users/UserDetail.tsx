@@ -1,65 +1,134 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Drawer,
   Tabs,
-  Descriptions,
-  Avatar,
   Typography,
   Space,
   Tag,
   Button,
   Spin,
-  List,
   Empty,
-  Popconfirm,
-  Select,
+  Form,
+  Table,
   message,
 } from "antd";
 import {
   UserOutlined,
-  StopOutlined,
-  SwapOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
-import { useOne, useUpdate } from "@refinedev/core";
+import { useOne, useUpdate, useCustom } from "@refinedev/core";
 import { StatusBadge } from "../../components/common/StatusBadge";
-import { formatDateTime, planColor } from "../../utils/formatters";
-import { PLAN_OPTIONS } from "../../utils/constants";
-import type { UserRecord, PlanType } from "../../types";
+import { formatDate, priorityColor } from "../../utils/formatters";
+import { API_BASE_URL, API_ADMIN_PREFIX } from "../../utils/constants";
+import { UserProfileTab } from "./UserProfileTab";
+import { ResetPasswordModal } from "./ResetPasswordModal";
+import { DeleteUserModal } from "./DeleteUserModal";
+import { AssignTaskModal } from "./AssignTaskModal";
+import type { UserRecord, PlanType, TaskSummary } from "../../types";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 interface UserDetailProps {
   readonly userId: string | null;
   readonly open: boolean;
   readonly onClose: () => void;
+  readonly onUserDeleted?: () => void;
 }
 
 export const UserDetail: React.FC<UserDetailProps> = ({
   userId,
   open,
   onClose,
+  onUserDeleted,
 }) => {
-  const { data, isLoading } = useOne<UserRecord>({
+  const [form] = Form.useForm();
+  const [isDirty, setIsDirty] = useState(false);
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [deleteUserOpen, setDeleteUserOpen] = useState(false);
+  const [assignTaskOpen, setAssignTaskOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("profile");
+
+  const { data, isLoading, refetch } = useOne<UserRecord>({
     resource: "users",
     id: userId ?? "",
     queryOptions: { enabled: !!userId } as never,
   });
 
-  const { mutate: updateUser } = useUpdate();
+  const { mutate: updateUser, isLoading: isSaving } = useUpdate();
+
+  const { data: tasksData, isLoading: tasksLoading, refetch: refetchTasks } =
+    useCustom<TaskSummary[]>({
+      url: `${API_BASE_URL}${API_ADMIN_PREFIX}/users/${userId}/tasks`,
+      method: "get",
+      queryOptions: {
+        enabled: !!userId && activeTab === "tasks",
+      } as never,
+    });
 
   const user = data?.data;
 
-  const handleBanToggle = () => {
-    if (!userId || !user) return;
+  useEffect(() => {
+    if (user && open) {
+      form.setFieldsValue({
+        name: user.name ?? "",
+        email: user.email ?? "",
+        timezone: user.timezone ?? "Asia/Kolkata",
+        avatarUrl: user.avatarUrl ?? "",
+      });
+      setIsDirty(false);
+    }
+  }, [user, open, form]);
+
+  useEffect(() => {
+    if (!open) {
+      setActiveTab("profile");
+      setIsDirty(false);
+    }
+  }, [open]);
+
+  const handleSave = () => {
+    form.validateFields().then((values) => {
+      if (!userId) return;
+      updateUser(
+        {
+          resource: "users",
+          id: userId,
+          values: {
+            name: values.name,
+            email: values.email,
+            timezone: values.timezone,
+            avatarUrl: values.avatarUrl || undefined,
+          },
+        },
+        {
+          onSuccess: () => {
+            message.success("User updated successfully");
+            setIsDirty(false);
+            refetch();
+          },
+          onError: (error) => {
+            message.error(error?.message ?? "Failed to update user");
+          },
+        },
+      );
+    });
+  };
+
+  const handleRoleChange = (newRole: string) => {
+    if (!userId) return;
     updateUser(
       {
         resource: "users",
         id: userId,
-        values: { isBanned: !user.isBanned },
+        values: { adminRole: newRole },
       },
       {
         onSuccess: () => {
-          message.success(user.isBanned ? "User unbanned" : "User banned");
+          message.success(`Role changed`);
+          refetch();
+        },
+        onError: (error) => {
+          message.error(error?.message ?? "Failed to change role");
         },
       },
     );
@@ -76,136 +145,214 @@ export const UserDetail: React.FC<UserDetailProps> = ({
       {
         onSuccess: () => {
           message.success(`Plan changed to ${plan}`);
+          refetch();
         },
       },
     );
   };
 
-  return (
-    <Drawer
-      title={
-        <Space>
-          <UserOutlined />
-          <span>User Detail</span>
-        </Space>
-      }
-      open={open}
-      onClose={onClose}
-      width={600}
-      extra={
-        <Space>
-          <Popconfirm
-            title={user?.isBanned ? "Unban this user?" : "Ban this user?"}
-            onConfirm={handleBanToggle}
-          >
-            <Button
-              icon={<StopOutlined />}
-              danger={!user?.isBanned}
-            >
-              {user?.isBanned ? "Unban" : "Ban"}
-            </Button>
-          </Popconfirm>
-        </Space>
-      }
-    >
-      {isLoading ? (
-        <div style={{ textAlign: "center", padding: 40 }}>
-          <Spin size="large" />
-        </div>
-      ) : !user ? (
-        <Empty description="User not found" />
+  const handleBanToggle = () => {
+    if (!userId || !user) return;
+    updateUser(
+      {
+        resource: "users",
+        id: userId,
+        values: { isBanned: !user.isBanned },
+      },
+      {
+        onSuccess: () => {
+          message.success(user.isBanned ? "User unbanned" : "User banned");
+          refetch();
+        },
+      },
+    );
+  };
+
+  const handleDeleteSuccess = () => {
+    onClose();
+    onUserDeleted?.();
+  };
+
+  const taskColumns = [
+    {
+      title: "Title",
+      dataIndex: "title",
+      key: "title",
+      ellipsis: true,
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      width: 100,
+      render: (status: string) => <StatusBadge status={status} />,
+    },
+    {
+      title: "Priority",
+      dataIndex: "priority",
+      key: "priority",
+      width: 90,
+      render: (priority: string) => (
+        <Tag color={priorityColor(priority)}>
+          {(priority ?? "none").toUpperCase()}
+        </Tag>
+      ),
+    },
+    {
+      title: "Due Date",
+      dataIndex: "dueDate",
+      key: "dueDate",
+      width: 110,
+      render: (date: string | null) => (date ? formatDate(date) : "--"),
+    },
+    {
+      title: "Created",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      width: 110,
+      render: (date: string) => formatDate(date),
+    },
+  ];
+
+  const tasks: TaskSummary[] = Array.isArray(tasksData?.data)
+    ? tasksData.data
+    : [];
+
+  const renderTasks = () => (
+    <div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
+        <Text type="secondary">
+          {tasks.length > 0
+            ? `${tasks.length} task${tasks.length !== 1 ? "s" : ""}`
+            : ""}
+        </Text>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          size="small"
+          onClick={() => setAssignTaskOpen(true)}
+          style={{
+            backgroundColor: "#FFD700",
+            borderColor: "#FFD700",
+            color: "#0F0A1A",
+            fontWeight: 600,
+          }}
+        >
+          Assign Task
+        </Button>
+      </div>
+      {tasks.length === 0 && !tasksLoading ? (
+        <Empty description="No tasks yet" />
       ) : (
-        <Tabs
-          defaultActiveKey="profile"
-          items={[
-            {
-              key: "profile",
-              label: "Profile",
-              children: (
-                <div>
-                  <div
-                    style={{
-                      textAlign: "center",
-                      marginBottom: 24,
-                    }}
-                  >
-                    <Avatar
-                      size={80}
-                      src={user.avatarUrl}
-                      icon={!user.avatarUrl ? <UserOutlined /> : undefined}
-                    />
-                    <Title level={4} style={{ marginTop: 12, marginBottom: 4 }}>
-                      {user.name}
-                    </Title>
-                    <Text type="secondary">{user.email}</Text>
-                  </div>
-
-                  <Descriptions
-                    column={1}
-                    bordered
-                    size="small"
-                    style={{ marginBottom: 24 }}
-                  >
-                    <Descriptions.Item label="ID">
-                      <Text code copyable>
-                        {user.id}
-                      </Text>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Status">
-                      <StatusBadge
-                        status={user.isBanned ? "banned" : "active"}
-                      />
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Plan">
-                      <Tag color={planColor(user.plan ?? "free")}>
-                        {(user.plan ?? "free").toUpperCase()}
-                      </Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Signed Up">
-                      {formatDateTime(user.createdAt)}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Last Active">
-                      {formatDateTime(user.updatedAt)}
-                    </Descriptions.Item>
-                  </Descriptions>
-
-                  <Title level={5}>Change Plan</Title>
-                  <Select
-                    value={user.plan ?? "free"}
-                    onChange={handlePlanChange}
-                    style={{ width: "100%" }}
-                    options={PLAN_OPTIONS.map((p) => ({
-                      value: p.value,
-                      label: p.label,
-                    }))}
-                  />
-                </div>
-              ),
-            },
-            {
-              key: "tasks",
-              label: "Tasks",
-              children: (
-                <Empty description="Task history will appear here" />
-              ),
-            },
-            {
-              key: "notifications",
-              label: "Notifications",
-              children: (
-                <Empty description="Notification history will appear here" />
-              ),
-            },
-            {
-              key: "activity",
-              label: "Activity",
-              children: (
-                <Empty description="Activity log will appear here" />
-              ),
-            },
-          ]}
+        <Table
+          dataSource={tasks}
+          columns={taskColumns}
+          rowKey="id"
+          size="small"
+          loading={tasksLoading}
+          pagination={{ pageSize: 10 }}
+          scroll={{ x: 500 }}
         />
       )}
-    </Drawer>
+    </div>
+  );
+
+  return (
+    <>
+      <Drawer
+        title={
+          <Space>
+            <UserOutlined />
+            <span>User Detail</span>
+          </Space>
+        }
+        open={open}
+        onClose={onClose}
+        width={620}
+      >
+        {isLoading ? (
+          <div style={{ textAlign: "center", padding: 40 }}>
+            <Spin size="large" />
+          </div>
+        ) : !user ? (
+          <Empty description="User not found" />
+        ) : (
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            items={[
+              {
+                key: "profile",
+                label: "Profile",
+                children: (
+                  <UserProfileTab
+                    user={user}
+                    form={form}
+                    isDirty={isDirty}
+                    isSaving={isSaving}
+                    onValuesChange={() => setIsDirty(true)}
+                    onSave={handleSave}
+                    onRoleChange={handleRoleChange}
+                    onPlanChange={handlePlanChange}
+                    onBanToggle={handleBanToggle}
+                    onResetPassword={() => setResetPasswordOpen(true)}
+                    onDeleteUser={() => setDeleteUserOpen(true)}
+                  />
+                ),
+              },
+              {
+                key: "tasks",
+                label: "Tasks",
+                children: renderTasks(),
+              },
+              {
+                key: "activity",
+                label: "Activity",
+                children: (
+                  <Empty
+                    description="Activity log coming soon"
+                    style={{ marginTop: 40 }}
+                  />
+                ),
+              },
+            ]}
+          />
+        )}
+      </Drawer>
+
+      {user && userId && (
+        <>
+          <ResetPasswordModal
+            open={resetPasswordOpen}
+            onClose={() => setResetPasswordOpen(false)}
+            userId={userId}
+            userName={user.name}
+            userEmail={user.email}
+          />
+          <DeleteUserModal
+            open={deleteUserOpen}
+            onClose={() => setDeleteUserOpen(false)}
+            userId={userId}
+            userName={user.name}
+            userEmail={user.email}
+            onSuccess={handleDeleteSuccess}
+          />
+          <AssignTaskModal
+            open={assignTaskOpen}
+            onClose={() => setAssignTaskOpen(false)}
+            userId={userId}
+            userName={user.name}
+            onSuccess={() => refetchTasks()}
+          />
+        </>
+      )}
+    </>
   );
 };
