@@ -80,6 +80,19 @@ const origin = typeof window !== "undefined" ? window.location.origin : "http://
 export const LOGTO_REDIRECT_URI =
   import.meta.env.VITE_LOGTO_REDIRECT_URI ?? `${origin}${basePath}callback`;
 
+// oidc-client-ts config (used by UserManager)
+export const LOGTO_CONFIG = {
+  authority: `${LOGTO_ENDPOINT}/oidc`,
+  clientId: LOGTO_APP_ID,
+  redirectUri: LOGTO_REDIRECT_URI,
+  postLogoutRedirectUri: `${origin}${basePath}`,
+  scopes: ["openid", "profile", "email"],
+  // API resource — must be registered in Logto admin console.
+  // Without this, Logto issues an opaque token (not JWT) and the
+  // backend auth middleware will reject it with 401.
+  resource: import.meta.env.VITE_LOGTO_API_RESOURCE ?? "https://api.unjynx.me",
+} as const;
+
 // ── Sidebar Menu Keys ────────────────────────────────────────────────
 export const MENU_KEYS = {
   DASHBOARD: "dashboard",

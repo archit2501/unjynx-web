@@ -2,7 +2,7 @@
 // UNJYNX Dev Portal - App Root
 // ============================================================
 
-import { Refine } from "@refinedev/core";
+import { Refine, Authenticated } from "@refinedev/core";
 import { RefineThemes, useNotificationProvider } from "@refinedev/antd";
 import routerProvider from "@refinedev/react-router";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -30,6 +30,8 @@ import { NotificationInfraPage } from "@/pages/notifications/NotificationInfraPa
 import { AiModelPage } from "@/pages/ai-models/AiModelPage";
 import { ChannelProvidersPage } from "@/pages/channel-providers/ChannelProvidersPage";
 import { DataPipelinePage } from "@/pages/data-pipeline/DataPipelinePage";
+import { LoginPage } from "@/pages/login/LoginPage";
+import { CallbackPage } from "@/pages/callback/CallbackPage";
 
 import { THEME_TOKEN } from "@/utils/constants";
 
@@ -155,7 +157,21 @@ export const App: React.FC = () => (
           }}
         >
           <Routes>
-            <Route element={<DevLayout />}>
+            {/* Public routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/callback" element={<CallbackPage />} />
+
+            {/* Protected routes */}
+            <Route
+              element={
+                <Authenticated
+                  key="auth"
+                  fallback={<Navigate to="/login" />}
+                >
+                  <DevLayout />
+                </Authenticated>
+              }
+            >
               <Route path="/system-health" element={<SystemHealthPage />} />
               <Route path="/database" element={<DatabasePage />} />
               <Route path="/api-management" element={<ApiManagementPage />} />
@@ -165,8 +181,9 @@ export const App: React.FC = () => (
               <Route path="/channel-providers" element={<ChannelProvidersPage />} />
               <Route path="/data-pipeline" element={<DataPipelinePage />} />
               <Route path="/" element={<Navigate to="/system-health" replace />} />
-              <Route path="*" element={<Navigate to="/system-health" replace />} />
             </Route>
+
+            <Route path="*" element={<Navigate to="/system-health" replace />} />
           </Routes>
         </Refine>
       </AntApp>

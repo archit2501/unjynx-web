@@ -21,6 +21,7 @@ import { accessControlProvider } from "./providers/access-control";
 
 import { AppLayout } from "./components/layout/AppLayout";
 import { LoginPage } from "./pages/login/LoginPage";
+import { CallbackPage } from "./pages/callback/CallbackPage";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
 import { UserList } from "./pages/users/UserList";
 import { ContentList } from "./pages/content/ContentList";
@@ -155,6 +156,7 @@ const App: React.FC = () => {
           >
             <Routes>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/callback" element={<CallbackPage />} />
 
               <Route
                 element={

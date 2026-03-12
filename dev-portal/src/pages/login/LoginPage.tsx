@@ -1,8 +1,8 @@
 import React from "react";
 import { Card, Button, Typography, Space, Alert } from "antd";
-import { SafetyOutlined } from "@ant-design/icons";
+import { CodeOutlined } from "@ant-design/icons";
 import { useLogin } from "@refinedev/core";
-import { BRAND_COLORS } from "../../utils/constants";
+import { COLORS } from "@/utils/constants";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -29,7 +29,7 @@ export const LoginPage: React.FC = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: `linear-gradient(135deg, ${BRAND_COLORS.midnight} 0%, #1a1030 50%, ${BRAND_COLORS.midnight} 100%)`,
+        background: `linear-gradient(135deg, ${COLORS.midnight} 0%, #1a1030 50%, ${COLORS.midnight} 100%)`,
         padding: 24,
       }}
     >
@@ -37,7 +37,9 @@ export const LoginPage: React.FC = () => {
         style={{
           width: 420,
           borderRadius: 12,
-          boxShadow: `0 8px 32px ${BRAND_COLORS.violet}33`,
+          background: "#1A1528",
+          border: "1px solid #2D2640",
+          boxShadow: `0 8px 32px ${COLORS.violet}33`,
         }}
         styles={{ body: { padding: 40 } }}
       >
@@ -45,14 +47,14 @@ export const LoginPage: React.FC = () => {
           <Title
             level={2}
             style={{
-              color: BRAND_COLORS.violet,
+              color: COLORS.gold,
               marginBottom: 4,
               letterSpacing: 3,
             }}
           >
             UNJYNX
           </Title>
-          <Text type="secondary">Enterprise Admin Portal</Text>
+          <Text style={{ color: COLORS.textSecondary }}>Developer Portal</Text>
         </div>
 
         {error && (
@@ -69,13 +71,13 @@ export const LoginPage: React.FC = () => {
         <Space direction="vertical" size="middle" style={{ width: "100%" }}>
           <Button
             type="primary"
-            icon={<SafetyOutlined />}
+            icon={<CodeOutlined />}
             onClick={handleLogin}
             loading={isPending}
             block
             size="large"
             style={{
-              background: BRAND_COLORS.violet,
+              background: COLORS.violet,
               height: 48,
               fontWeight: 600,
               fontSize: 16,
@@ -85,11 +87,10 @@ export const LoginPage: React.FC = () => {
           </Button>
 
           <Paragraph
-            type="secondary"
-            style={{ textAlign: "center", marginTop: 16, fontSize: 12, marginBottom: 0 }}
+            style={{ textAlign: "center", marginTop: 16, fontSize: 12, marginBottom: 0, color: COLORS.textSecondary }}
           >
-            You will be redirected to the UNJYNX identity provider to
-            authenticate. Only users with admin roles can access this portal.
+            Only users with dev_admin or super_admin roles can access
+            this portal.
           </Paragraph>
         </Space>
       </Card>

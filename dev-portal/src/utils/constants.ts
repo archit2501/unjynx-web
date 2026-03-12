@@ -70,6 +70,10 @@ export const LOGTO_CONFIG = {
   redirectUri: `${origin}${basePath}callback`,
   postLogoutRedirectUri: `${origin}${basePath}`,
   scopes: ["openid", "profile", "email", "roles"],
+  // API resource — must be registered in Logto admin console.
+  // Without this, Logto issues an opaque token (not JWT) and the
+  // backend auth middleware will reject it with 401.
+  resource: import.meta.env.VITE_LOGTO_API_RESOURCE ?? "https://api.unjynx.me",
 } as const;
 
 // Refresh intervals (ms)

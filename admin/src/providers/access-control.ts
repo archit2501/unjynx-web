@@ -1,6 +1,8 @@
 import type { AccessControlProvider } from "@refinedev/core";
 import type { AdminRole } from "../types";
 
+const ADMIN_ROLE_KEY = "unjynx_admin_role";
+
 /**
  * Role-based access control matrix.
  * Maps each resource+action pair to the roles that are permitted.
@@ -56,18 +58,7 @@ const PERMISSION_MATRIX: Record<string, readonly AdminRole[]> = {
 
 export const accessControlProvider: AccessControlProvider = {
   can: async ({ resource, action }) => {
-    // Retrieve role from localStorage (set during login)
-    const raw = localStorage.getItem("unjynx_admin_user");
-    let role: AdminRole = "VIEWER";
-
-    if (raw) {
-      try {
-        const user = JSON.parse(raw);
-        role = user.role ?? "VIEWER";
-      } catch {
-        // Fall through to VIEWER
-      }
-    }
+    const role = (localStorage.getItem(ADMIN_ROLE_KEY) ?? "VIEWER") as AdminRole;
 
     // SUPER_ADMIN bypasses all checks
     if (role === "SUPER_ADMIN") {

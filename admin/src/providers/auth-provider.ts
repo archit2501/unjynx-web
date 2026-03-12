@@ -1,185 +1,158 @@
 import type { AuthProvider } from "@refinedev/core";
-import type { AdminUser, AdminRole } from "../types";
-import { API_BASE_URL, LOGTO_ENDPOINT, LOGTO_APP_ID } from "../utils/constants";
+import { UserManager, WebStorageStateStore } from "oidc-client-ts";
+import { API_BASE_URL, LOGTO_CONFIG } from "../utils/constants";
 
-const TOKEN_KEY = "unjynx_admin_token";
-const REFRESH_TOKEN_KEY = "unjynx_admin_refresh_token";
-const USER_KEY = "unjynx_admin_user";
+const ADMIN_ROLE_KEY = "unjynx_admin_role";
+
+export const userManager = new UserManager({
+  authority: LOGTO_CONFIG.authority,
+  client_id: LOGTO_CONFIG.clientId,
+  redirect_uri: LOGTO_CONFIG.redirectUri,
+  post_logout_redirect_uri: LOGTO_CONFIG.postLogoutRedirectUri,
+  scope: LOGTO_CONFIG.scopes.join(" "),
+  response_type: "code",
+  userStore: new WebStorageStateStore({ store: window.localStorage }),
+  // Request JWT (not opaque) by specifying the API resource
+  extraQueryParams: { resource: LOGTO_CONFIG.resource },
+});
 
 /**
- * Maps backend role names (lowercase/underscore) to frontend AdminRole names (uppercase).
- * Backend stores: "user", "super_admin", "dev_admin"
- * Frontend expects: "SUPER_ADMIN", "CONTENT_MANAGER", "SUPPORT_AGENT", "VIEWER"
+ * Map backend admin_role enum to frontend AdminRole type.
+ * DB values: "user" | "super_admin" | "dev_admin"
+ * Frontend values: "SUPER_ADMIN" | "CONTENT_MANAGER" | "SUPPORT_AGENT" | "VIEWER"
  */
-const BACKEND_ROLE_MAP: Readonly<Record<string, AdminRole>> = {
-  super_admin: "SUPER_ADMIN",
-  dev_admin: "SUPER_ADMIN",     // dev_admin gets full admin access in admin panel
-  content_manager: "CONTENT_MANAGER",
-  support_agent: "SUPPORT_AGENT",
-  user: "VIEWER",
-};
-
-function mapBackendRole(backendRole: string | null | undefined): AdminRole {
-  if (!backendRole) return "VIEWER";
-  return BACKEND_ROLE_MAP[backendRole.toLowerCase()] ?? "VIEWER";
+function mapAdminRole(dbRole: string | null | undefined): string {
+  if (dbRole === "super_admin" || dbRole === "dev_admin") return "SUPER_ADMIN";
+  return "VIEWER";
 }
 
-function getStoredToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-function getStoredUser(): AdminUser | null {
-  const raw = localStorage.getItem(USER_KEY);
+/**
+ * Get access token synchronously from oidc-client-ts localStorage.
+ * Used by the data provider for Authorization headers.
+ */
+export function getAccessToken(): string | null {
+  const key = `oidc.user:${LOGTO_CONFIG.authority}:${LOGTO_CONFIG.clientId}`;
+  const raw = localStorage.getItem(key);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as AdminUser;
+    const data = JSON.parse(raw);
+    return (data?.access_token as string) ?? null;
   } catch {
     return null;
   }
 }
 
-function storeAuth(token: string, refreshToken: string, user: AdminUser): void {
-  localStorage.setItem(TOKEN_KEY, token);
-  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
-}
+/**
+ * Fetch admin role from backend and cache in localStorage.
+ * Returns the mapped frontend role.
+ */
+async function fetchAndCacheAdminRole(accessToken: string): Promise<string> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
 
-function clearAuth(): void {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
-}
+  if (!response.ok) {
+    throw new Error(`Failed to fetch profile: ${response.status}`);
+  }
 
-export function getAccessToken(): string | null {
-  return getStoredToken();
+  const json = await response.json();
+  const dbRole = json.data?.adminRole as string | null;
+  const role = mapAdminRole(dbRole);
+  localStorage.setItem(ADMIN_ROLE_KEY, role);
+  return role;
 }
 
 export const authProvider: AuthProvider = {
-  login: async ({ email, password, providerName }) => {
-    // SSO / OIDC flow: redirect to Logto
-    if (providerName === "logto") {
-      const redirectUri = `${window.location.origin}/callback`;
-      const authUrl =
-        `${LOGTO_ENDPOINT}/oidc/auth?` +
-        `client_id=${LOGTO_APP_ID}&` +
-        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-        `response_type=code&` +
-        `scope=openid+profile+email&` +
-        `prompt=consent`;
-
-      window.location.href = authUrl;
-      return { success: true };
-    }
-
-    // Email/password login via backend
+  login: async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const json = await response.json();
-
-      if (!response.ok || !json.success) {
-        return {
-          success: false,
-          error: {
-            name: "LoginError",
-            message: json.error ?? "Invalid credentials",
-          },
-        };
-      }
-
-      const { token, refreshToken, user } = json.data;
-
-      const adminUser: AdminUser = {
-        id: user.id,
-        email: user.email,
-        name: user.name ?? user.email,
-        avatarUrl: user.avatarUrl,
-        role: mapBackendRole(user.role),
-      };
-
-      storeAuth(token, refreshToken, adminUser);
-
-      return {
-        success: true,
-        redirectTo: "/",
-      };
-    } catch {
+      await userManager.signinRedirect();
+      return { success: true };
+    } catch (error) {
       return {
         success: false,
         error: {
           name: "LoginError",
-          message: "Network error. Please try again.",
+          message: String(error),
         },
       };
     }
   },
 
   logout: async () => {
-    const token = getStoredToken();
-
-    if (token) {
-      try {
-        await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      } catch {
-        // Best-effort logout
-      }
+    localStorage.removeItem(ADMIN_ROLE_KEY);
+    try {
+      await userManager.signoutRedirect();
+      return { success: true };
+    } catch {
+      await userManager.removeUser();
+      return { success: true, redirectTo: "/login" };
     }
-
-    clearAuth();
-
-    return {
-      success: true,
-      redirectTo: "/login",
-    };
   },
 
   check: async () => {
-    const token = getStoredToken();
-    const user = getStoredUser();
+    try {
+      const user = await userManager.getUser();
+      if (!user || user.expired) {
+        return { authenticated: false, redirectTo: "/login" };
+      }
 
-    if (!token || !user) {
-      return {
-        authenticated: false,
-        redirectTo: "/login",
-      };
+      // Ensure we have the admin role cached
+      let role = localStorage.getItem(ADMIN_ROLE_KEY);
+      if (!role) {
+        try {
+          role = await fetchAndCacheAdminRole(user.access_token);
+        } catch {
+          return { authenticated: false, redirectTo: "/login" };
+        }
+      }
+
+      if (role === "VIEWER") {
+        // "VIEWER" means the user has no admin role — deny access
+        localStorage.removeItem(ADMIN_ROLE_KEY);
+        await userManager.removeUser();
+        return {
+          authenticated: false,
+          error: {
+            name: "Forbidden",
+            message:
+              "Admin access required. Contact your administrator to get an admin role.",
+          },
+          logout: true,
+        };
+      }
+
+      return { authenticated: true };
+    } catch {
+      return { authenticated: false, redirectTo: "/login" };
     }
-
-    return { authenticated: true };
   },
 
   getIdentity: async () => {
-    const user = getStoredUser();
+    const user = await userManager.getUser();
     if (!user) return null;
 
+    const role = localStorage.getItem(ADMIN_ROLE_KEY) ?? "VIEWER";
+
     return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatarUrl,
-      role: user.role,
+      id: user.profile.sub,
+      name: user.profile.name ?? user.profile.email ?? "Admin",
+      email: user.profile.email,
+      avatar: user.profile.picture ?? undefined,
+      role,
     };
   },
 
   getPermissions: async () => {
-    const user = getStoredUser();
-    return user?.role ?? "VIEWER";
+    return localStorage.getItem(ADMIN_ROLE_KEY) ?? "VIEWER";
   },
 
   onError: async (error) => {
-    const status = error?.statusCode ?? error?.status;
+    const status =
+      (error as { statusCode?: number })?.statusCode ??
+      (error as { status?: number })?.status;
     if (status === 401) {
-      clearAuth();
-      return {
-        logout: true,
-        redirectTo: "/login",
-      };
+      localStorage.removeItem(ADMIN_ROLE_KEY);
+      return { logout: true, redirectTo: "/login" };
     }
     return { error };
   },
