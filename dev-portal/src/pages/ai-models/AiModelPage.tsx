@@ -2,7 +2,7 @@
 // R6 - AI Model Management Page
 // ============================================================
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Typography,
   Space,
@@ -17,6 +17,8 @@ import {
   Slider,
   Modal,
   Descriptions,
+  Spin,
+  Alert,
   message,
 } from "antd";
 import {
@@ -27,12 +29,15 @@ import {
   RollbackOutlined,
   PlayCircleOutlined,
   PauseCircleOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
+import { useCustom } from "@refinedev/core";
 import { MetricPanel } from "@/components/charts/MetricPanel";
 import { TimeSeriesChart } from "@/components/charts/TimeSeriesChart";
 import { CodeBlock } from "@/components/common/CodeBlock";
-import type { AiModelConfig, PromptVersion, ModelCost, ModelQuality, AbTestConfig } from "@/types";
-import { COLORS } from "@/utils/constants";
+import type { PromptVersion, AbTestConfig } from "@/types";
+import { COLORS, REFRESH_INTERVALS } from "@/utils/constants";
+import { fetchWithAuth, apiUrl } from "@/providers/data-provider";
 import {
   formatTimestamp,
   formatNumber,
@@ -42,14 +47,57 @@ import {
   getStatusColor,
 } from "@/utils/formatters";
 
-// --- Mock data ---
-const mockModels: AiModelConfig[] = [
-  { id: "m1", provider: "Anthropic", modelId: "claude-haiku-4-5", maxTokens: 4096, temperature: 0.3, purpose: "Task analysis & smart scheduling (80% of requests)", status: "active" },
-  { id: "m2", provider: "Anthropic", modelId: "claude-sonnet-4-6", maxTokens: 8192, temperature: 0.5, purpose: "Complex reasoning & insights (15% of requests)", status: "active" },
-  { id: "m3", provider: "Anthropic", modelId: "claude-opus-4-6", maxTokens: 16384, temperature: 0.7, purpose: "Deep analysis & research (5% of requests)", status: "active" },
-  { id: "m4", provider: "Ollama (Local)", modelId: "llama3.2:3b", maxTokens: 2048, temperature: 0.4, purpose: "On-device fallback & offline mode", status: "active" },
-  { id: "m5", provider: "Ollama (Local)", modelId: "nomic-embed-text", maxTokens: 512, temperature: 0, purpose: "Text embeddings for semantic search", status: "testing" },
-];
+// --- Types for API responses ---
+
+interface ModelApiItem {
+  readonly key: string;
+  readonly modelId: string;
+  readonly provider: string;
+  readonly maxTokens: number;
+  readonly temperature: number;
+  readonly isActive: boolean;
+}
+
+interface UsageApiItem {
+  readonly modelKey: string;
+  readonly totalRequests: number;
+  readonly totalTokens: number;
+  readonly avgResponseMs: number;
+  readonly errorRate: number;
+  readonly costUsd: number;
+}
+
+// --- Mapped internal types ---
+
+interface ModelConfigRow {
+  readonly id: string;
+  readonly key: string;
+  readonly provider: string;
+  readonly modelId: string;
+  readonly maxTokens: number;
+  readonly temperature: number;
+  readonly status: "active" | "inactive";
+}
+
+interface CostRow {
+  readonly modelId: string;
+  readonly modelKey: string;
+  readonly provider: string;
+  readonly tokensUsed: number;
+  readonly totalCost: number;
+  readonly avgCostPerRequest: number;
+}
+
+interface QualityRow {
+  readonly modelId: string;
+  readonly modelKey: string;
+  readonly successRate: number;
+  readonly avgResponseTime: number;
+  readonly errorRate: number;
+  readonly totalRequests: number;
+}
+
+// --- Mock data for sections without backend endpoints ---
 
 const mockPromptVersions: PromptVersion[] = [
   { id: "p1", promptName: "task_scheduler", version: 5, content: "You are UNJYNX's AI scheduling assistant. Analyze the user's task list and suggest optimal scheduling based on:\n1. Priority (p0-p3)\n2. Due date proximity\n3. Energy levels (from user's historical patterns)\n4. Time blocking preferences\n\nRespond in JSON format with scheduled_times array.", createdAt: "2026-03-10T10:00:00Z", createdBy: "developer", status: "active" },
@@ -59,37 +107,189 @@ const mockPromptVersions: PromptVersion[] = [
   { id: "p5", promptName: "content_categorizer", version: 1, content: "Categorize the following content item into one of the 60+ UNJYNX categories. Return the category name and confidence score.", createdAt: "2026-03-07T10:00:00Z", createdBy: "developer", status: "active" },
 ];
 
-const mockModelCosts: ModelCost[] = [
-  { modelId: "claude-haiku-4-5", provider: "Anthropic", tokensUsed: 2_400_000, totalCost: 2.40, avgCostPerRequest: 0.0001, period: "24h" },
-  { modelId: "claude-sonnet-4-6", provider: "Anthropic", tokensUsed: 480_000, totalCost: 1.44, avgCostPerRequest: 0.0008, period: "24h" },
-  { modelId: "claude-opus-4-6", provider: "Anthropic", tokensUsed: 120_000, totalCost: 1.80, avgCostPerRequest: 0.006, period: "24h" },
-  { modelId: "llama3.2:3b", provider: "Ollama", tokensUsed: 800_000, totalCost: 0, avgCostPerRequest: 0, period: "24h" },
-];
-
-const mockModelQuality: ModelQuality[] = [
-  { modelId: "claude-haiku-4-5", successRate: 99.2, avgResponseTime: 340, errorRate: 0.8, totalRequests: 24000 },
-  { modelId: "claude-sonnet-4-6", successRate: 98.5, avgResponseTime: 1200, errorRate: 1.5, totalRequests: 1800 },
-  { modelId: "claude-opus-4-6", successRate: 97.8, avgResponseTime: 3400, errorRate: 2.2, totalRequests: 300 },
-  { modelId: "llama3.2:3b", successRate: 96.1, avgResponseTime: 1800, errorRate: 3.9, totalRequests: 8000 },
-];
-
 const mockAbTests: AbTestConfig[] = [
   { id: "ab1", name: "Scheduler Prompt v4 vs v5", promptA: "task_scheduler v4", promptB: "task_scheduler v5", trafficSplit: 50, status: "running", winner: null, startDate: "2026-03-09T10:00:00Z" },
   { id: "ab2", name: "Insight Tone: Professional vs Friendly", promptA: "daily_insight_formal", promptB: "daily_insight_friendly", trafficSplit: 50, status: "completed", winner: "B", startDate: "2026-03-01T10:00:00Z" },
 ];
 
-const costHistory = Array.from({ length: 14 }, (_, i) => ({
-  time: `Mar ${i + 1}`,
-  haiku: 1.8 + Math.random() * 1.2,
-  sonnet: 1.0 + Math.random() * 0.8,
-  opus: 1.2 + Math.random() * 1.0,
-}));
+// --- Helpers ---
+
+const formatProviderDisplay = (provider: string): string => {
+  switch (provider) {
+    case "anthropic":
+      return "Anthropic";
+    case "ollama":
+      return "Ollama (Local)";
+    default:
+      return provider;
+  }
+};
+
+const updateModelConfig = async (key: string, config: object): Promise<{ updated: boolean }> => {
+  const res = await fetchWithAuth(`${apiUrl}/ai-models/${key}`, {
+    method: "PATCH",
+    body: JSON.stringify(config),
+  });
+  if (!res.ok) throw new Error(`PATCH failed: ${res.status}`);
+  const json = await res.json();
+  return json.data ?? json;
+};
 
 export const AiModelPage: React.FC = () => {
   const [selectedPrompt, setSelectedPrompt] = useState<PromptVersion | null>(null);
 
-  const totalDailyCost = mockModelCosts.reduce((s, c) => s + c.totalCost, 0);
-  const totalRequests = mockModelQuality.reduce((s, q) => s + q.totalRequests, 0);
+  // --- API calls ---
+
+  const {
+    data: modelsData,
+    isLoading: modelsLoading,
+    isError: modelsError,
+    refetch: refetchModels,
+  } = useCustom<ModelApiItem[]>({
+    url: "ai-models",
+    method: "get",
+    queryOptions: {
+      refetchInterval: REFRESH_INTERVALS.normal,
+      queryKey: ["ai-models"],
+    },
+  });
+
+  const {
+    data: usageData,
+    isLoading: usageLoading,
+    isError: usageError,
+  } = useCustom<UsageApiItem[]>({
+    url: "ai-usage",
+    method: "get",
+    queryOptions: {
+      refetchInterval: REFRESH_INTERVALS.normal,
+      queryKey: ["ai-usage"],
+    },
+  });
+
+  // --- Derived data ---
+
+  const modelItems: readonly ModelApiItem[] = useMemo(
+    () => (modelsData?.data as unknown as ModelApiItem[]) ?? [],
+    [modelsData],
+  );
+
+  const usageItems: readonly UsageApiItem[] = useMemo(
+    () => (usageData?.data as unknown as UsageApiItem[]) ?? [],
+    [usageData],
+  );
+
+  // Map models for Model Configuration tab
+  const modelConfigRows: readonly ModelConfigRow[] = useMemo(
+    () =>
+      modelItems.map((m) => ({
+        id: m.key,
+        key: m.key,
+        provider: formatProviderDisplay(m.provider),
+        modelId: m.modelId,
+        maxTokens: m.maxTokens,
+        temperature: m.temperature,
+        status: m.isActive ? ("active" as const) : ("inactive" as const),
+      })),
+    [modelItems],
+  );
+
+  // Map usage for Cost Tracking tab
+  const costRows: readonly CostRow[] = useMemo(
+    () =>
+      usageItems.map((u) => {
+        const model = modelItems.find((m) => m.key === u.modelKey);
+        return {
+          modelId: model?.modelId ?? u.modelKey,
+          modelKey: u.modelKey,
+          provider: model ? formatProviderDisplay(model.provider) : u.modelKey,
+          tokensUsed: u.totalTokens,
+          totalCost: u.costUsd,
+          avgCostPerRequest:
+            u.totalRequests > 0 ? u.costUsd / u.totalRequests : 0,
+        };
+      }),
+    [usageItems, modelItems],
+  );
+
+  // Map usage for Quality tab
+  const qualityRows: readonly QualityRow[] = useMemo(
+    () =>
+      usageItems.map((u) => {
+        const model = modelItems.find((m) => m.key === u.modelKey);
+        return {
+          modelId: model?.modelId ?? u.modelKey,
+          modelKey: u.modelKey,
+          successRate: 100 - u.errorRate,
+          avgResponseTime: u.avgResponseMs,
+          errorRate: u.errorRate,
+          totalRequests: u.totalRequests,
+        };
+      }),
+    [usageItems, modelItems],
+  );
+
+  // Overview metrics
+  const totalDailyCost = useMemo(
+    () => costRows.reduce((s, c) => s + c.totalCost, 0),
+    [costRows],
+  );
+
+  const totalRequests = useMemo(
+    () => qualityRows.reduce((s, q) => s + q.totalRequests, 0),
+    [qualityRows],
+  );
+
+  const activeModelCount = useMemo(
+    () => modelConfigRows.filter((m) => m.status === "active").length,
+    [modelConfigRows],
+  );
+
+  // Cost history placeholder from current data
+  const costChartData = useMemo(() => {
+    if (costRows.length === 0) return [];
+    // Build a single-point chart from current cost data per model
+    return [
+      costRows.reduce(
+        (acc, row) => {
+          const shortName = row.modelId.replace("claude-", "").replace(/[.:]/g, "_");
+          return { ...acc, [shortName]: row.totalCost };
+        },
+        { time: "Today" } as Record<string, unknown>,
+      ),
+    ];
+  }, [costRows]);
+
+  const costChartSeries = useMemo(
+    () =>
+      costRows
+        .filter((r) => r.totalCost > 0)
+        .map((row, i) => {
+          const colors = [COLORS.chartTertiary, COLORS.chartPrimary, COLORS.chartSecondary, COLORS.chartQuaternary];
+          return {
+            dataKey: row.modelId.replace("claude-", "").replace(/[.:]/g, "_"),
+            name: row.modelId,
+            color: colors[i % colors.length],
+          };
+        }),
+    [costRows],
+  );
+
+  // Temperature change handler
+  const handleTemperatureChange = useCallback(
+    async (modelKey: string, modelId: string, newTemp: number) => {
+      try {
+        await updateModelConfig(modelKey, { temperature: newTemp });
+        message.success(`Temperature updated to ${newTemp} for ${modelId}`);
+        refetchModels();
+      } catch {
+        message.error(`Failed to update temperature for ${modelId}`);
+      }
+    },
+    [refetchModels],
+  );
+
+  const isLoading = modelsLoading || usageLoading;
 
   const tabItems = [
     {
@@ -101,10 +301,20 @@ export const AiModelPage: React.FC = () => {
       ),
       children: (
         <Space direction="vertical" size={16} style={{ width: "100%" }}>
+          {modelsError && (
+            <Alert
+              message="Failed to load model configuration"
+              description="Could not fetch AI models from the backend."
+              type="error"
+              showIcon
+              closable
+            />
+          )}
           <Table
-            dataSource={mockModels}
+            dataSource={modelConfigRows as unknown as ModelConfigRow[]}
             rowKey="id"
             pagination={false}
+            loading={modelsLoading}
             columns={[
               {
                 title: "Provider",
@@ -132,20 +342,31 @@ export const AiModelPage: React.FC = () => {
               {
                 title: "Temperature",
                 dataIndex: "temperature",
-                render: (v: number, record: AiModelConfig) => (
+                render: (v: number, record: ModelConfigRow) => (
                   <Slider
-                    value={v}
+                    defaultValue={v}
                     min={0}
                     max={1}
                     step={0.1}
                     style={{ width: 100 }}
                     tooltip={{ formatter: (val) => `${val}` }}
-                    onChange={() => message.info(`Temperature updated for ${record.modelId}`)}
+                    onChangeComplete={(newVal: number) =>
+                      handleTemperatureChange(record.key, record.modelId, newVal)
+                    }
                   />
                 ),
                 width: 140,
               },
-              { title: "Purpose", dataIndex: "purpose" },
+              {
+                title: "Key",
+                dataIndex: "key",
+                render: (v: string) => (
+                  <Typography.Text style={{ color: "#9CA3AF", fontSize: 11 }}>
+                    {v}
+                  </Typography.Text>
+                ),
+                width: 120,
+              },
               {
                 title: "Status",
                 dataIndex: "status",
@@ -168,6 +389,13 @@ export const AiModelPage: React.FC = () => {
       ),
       children: (
         <Space direction="vertical" size={16} style={{ width: "100%" }}>
+          <Alert
+            message="Prompt versioning (local preview)"
+            type="info"
+            showIcon
+            icon={<InfoCircleOutlined />}
+            style={{ marginBottom: 0 }}
+          />
           <Table
             dataSource={mockPromptVersions}
             rowKey="id"
@@ -276,13 +504,20 @@ export const AiModelPage: React.FC = () => {
       ),
       children: (
         <Space direction="vertical" size={16} style={{ width: "100%" }}>
+          {usageError && (
+            <Alert
+              message="Failed to load usage data"
+              description="Cost information is unavailable. Check backend connectivity."
+              type="error"
+              showIcon
+              closable
+            />
+          )}
           <Row gutter={[16, 16]}>
             <Col xs={12} sm={6}>
               <MetricPanel
                 title="Daily Cost"
                 value={formatCurrency(totalDailyCost)}
-                trend={-3.2}
-                trendLabel="vs yesterday"
               />
             </Col>
             <Col xs={12} sm={6}>
@@ -293,34 +528,31 @@ export const AiModelPage: React.FC = () => {
             </Col>
             <Col xs={12} sm={6}>
               <MetricPanel
-                title="Total Tokens (24h)"
-                value={`${(mockModelCosts.reduce((s, c) => s + c.tokensUsed, 0) / 1_000_000).toFixed(1)}M`}
+                title="Total Tokens"
+                value={`${(costRows.reduce((s, c) => s + c.tokensUsed, 0) / 1_000_000).toFixed(1)}M`}
               />
             </Col>
             <Col xs={12} sm={6}>
               <MetricPanel
                 title="Avg Cost/Request"
-                value={formatCurrency(totalDailyCost / totalRequests)}
+                value={totalRequests > 0 ? formatCurrency(totalDailyCost / totalRequests) : "$0.00"}
               />
             </Col>
           </Row>
 
           <TimeSeriesChart
-            title="Cost per Model (14 days)"
-            data={costHistory}
-            series={[
-              { dataKey: "haiku", name: "Haiku 4.5", color: COLORS.chartTertiary },
-              { dataKey: "sonnet", name: "Sonnet 4.6", color: COLORS.chartPrimary },
-              { dataKey: "opus", name: "Opus 4.6", color: COLORS.chartSecondary },
-            ]}
+            title="Cost per Model (current snapshot)"
+            data={costChartData as unknown as Record<string, unknown>[]}
+            series={costChartSeries}
             yAxisLabel="$ USD"
             height={250}
           />
 
           <Table
-            dataSource={mockModelCosts}
-            rowKey="modelId"
+            dataSource={costRows as unknown as CostRow[]}
+            rowKey="modelKey"
             pagination={false}
+            loading={usageLoading}
             columns={[
               {
                 title: "Model",
@@ -375,10 +607,20 @@ export const AiModelPage: React.FC = () => {
           <Typography.Title level={5} style={{ color: COLORS.white }}>
             Quality Metrics
           </Typography.Title>
+          {usageError && (
+            <Alert
+              message="Failed to load quality metrics"
+              description="Quality data is unavailable."
+              type="error"
+              showIcon
+              closable
+            />
+          )}
           <Table
-            dataSource={mockModelQuality}
-            rowKey="modelId"
+            dataSource={qualityRows as unknown as QualityRow[]}
+            rowKey="modelKey"
             pagination={false}
+            loading={usageLoading}
             columns={[
               {
                 title: "Model",
@@ -424,6 +666,7 @@ export const AiModelPage: React.FC = () => {
 
           <Typography.Title level={5} style={{ color: COLORS.white, marginTop: 16 }}>
             A/B Tests
+            <Tag color="default" style={{ marginLeft: 8, fontWeight: "normal" }}>A/B testing (preview)</Tag>
           </Typography.Title>
           <Table
             dataSource={mockAbTests}
@@ -509,40 +752,62 @@ export const AiModelPage: React.FC = () => {
   ];
 
   return (
-    <Space direction="vertical" size={24} style={{ width: "100%" }}>
-      <Typography.Title level={3} style={{ margin: 0, color: COLORS.white }}>
-        AI Model Management
-      </Typography.Title>
+    <Spin spinning={isLoading} size="large">
+      <Space direction="vertical" size={24} style={{ width: "100%" }}>
+        <Typography.Title level={3} style={{ margin: 0, color: COLORS.white }}>
+          AI Model Management
+        </Typography.Title>
 
-      <Row gutter={[16, 16]}>
-        <Col xs={12} sm={6}>
-          <MetricPanel title="Active Models" value={mockModels.filter((m) => m.status === "active").length} />
-        </Col>
-        <Col xs={12} sm={6}>
-          <MetricPanel title="Total Requests (24h)" value={formatNumber(totalRequests)} />
-        </Col>
-        <Col xs={12} sm={6}>
-          <MetricPanel title="Daily Cost" value={formatCurrency(totalDailyCost)} />
-        </Col>
-        <Col xs={12} sm={6}>
-          <MetricPanel title="Prompt Versions" value={mockPromptVersions.length} />
-        </Col>
-      </Row>
+        <Row gutter={[16, 16]}>
+          <Col xs={12} sm={6}>
+            <MetricPanel title="Active Models" value={activeModelCount} />
+          </Col>
+          <Col xs={12} sm={6}>
+            <MetricPanel title="Total Requests" value={formatNumber(totalRequests)} />
+          </Col>
+          <Col xs={12} sm={6}>
+            <MetricPanel title="Daily Cost" value={formatCurrency(totalDailyCost)} />
+          </Col>
+          <Col xs={12} sm={6}>
+            <MetricPanel title="Prompt Versions" value={mockPromptVersions.length} />
+          </Col>
+        </Row>
 
-      <Card
-        style={{ background: "#1A1528", border: "1px solid #2D2640" }}
-        styles={{ body: { padding: 0 } }}
-      >
-        <Tabs
-          defaultActiveKey="models"
-          items={tabItems}
-          tabBarStyle={{
-            padding: "0 16px",
-            borderBottom: "1px solid #2D2640",
-          }}
-          style={{ padding: "0 16px 16px" }}
-        />
-      </Card>
-    </Space>
+        {/* API error alerts at the top level */}
+        {modelsError && (
+          <Alert
+            message="Failed to load AI models"
+            description="Model data is unavailable. Tabs may show empty tables."
+            type="error"
+            showIcon
+            closable
+          />
+        )}
+        {usageError && (
+          <Alert
+            message="Failed to load AI usage data"
+            description="Cost and quality data are unavailable."
+            type="error"
+            showIcon
+            closable
+          />
+        )}
+
+        <Card
+          style={{ background: "#1A1528", border: "1px solid #2D2640" }}
+          styles={{ body: { padding: 0 } }}
+        >
+          <Tabs
+            defaultActiveKey="models"
+            items={tabItems}
+            tabBarStyle={{
+              padding: "0 16px",
+              borderBottom: "1px solid #2D2640",
+            }}
+            style={{ padding: "0 16px 16px" }}
+          />
+        </Card>
+      </Space>
+    </Spin>
   );
 };

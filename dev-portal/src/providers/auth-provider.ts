@@ -14,6 +14,10 @@ const userManager = new UserManager({
   scope: LOGTO_CONFIG.scopes.join(" "),
   response_type: "code",
   userStore: new WebStorageStateStore({ store: window.localStorage }),
+  // Request JWT (not opaque) by specifying the API resource
+  extraQueryParams: { resource: LOGTO_CONFIG.resource },
+  // Must also send resource during token exchange, otherwise Logto returns opaque token
+  extraTokenParams: { resource: LOGTO_CONFIG.resource },
 });
 
 const ALLOWED_ROLES = ["dev_admin", "super_admin"] as const;

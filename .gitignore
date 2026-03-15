@@ -1,10 +1,30 @@
+# Node.js
 node_modules/
 dist/
-.astro/
+.turbo/
+*.tsbuildinfo
+
+# Environment
 .env
 .env.local
-*.log
-coverage/
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
 .DS_Store
 Thumbs.db
-.vercel/
+
+# Testing
+coverage/
+test-results/
+
+# Build
+*.js.map
+
+# Misc
+*.log
+*.tmp
+.claude/

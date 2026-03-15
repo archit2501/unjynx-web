@@ -99,10 +99,12 @@ export const getStatusColor = (
     case "running":
     case "completed":
     case "success":
+    case "succeeded":
     case "applied":
     case "approved":
     case "compliant":
     case "passed":
+    case "configured":
       return "success";
     case "degraded":
     case "deploying":
@@ -110,6 +112,9 @@ export const getStatusColor = (
     case "in_progress":
     case "testing":
     case "scheduled":
+    case "idle":
+    case "expired":
+    case "rolling_back":
       return "warning";
     case "down":
     case "error":
@@ -120,6 +125,7 @@ export const getStatusColor = (
     case "failing":
     case "stopped":
     case "critical":
+    case "missing":
       return "error";
     default:
       return "default";
@@ -150,7 +156,19 @@ export const formatCron = (cron: string): string => {
   if (cron === "*/5 * * * *") return "Every 5 minutes";
   if (cron === "*/15 * * * *") return "Every 15 minutes";
   if (cron === "0 * * * *") return "Every hour";
+  if (/^0 \*\/(\d+) \* \* \*$/.test(cron)) {
+    const hours = cron.match(/\*\/(\d+)/)?.[1];
+    return `Every ${hours} hours`;
+  }
   if (cron === "0 0 * * *") return "Daily at midnight";
+  if (/^0 (\d+) \* \* \*$/.test(cron)) {
+    const hour = cron.match(/^0 (\d+)/)?.[1];
+    return `Daily at ${hour}:00`;
+  }
+  if (/^0 (\d+) \* \* 0$/.test(cron)) {
+    const hour = cron.match(/^0 (\d+)/)?.[1];
+    return `Weekly (Sun ${hour}:00)`;
+  }
   if (cron === "0 0 * * 0") return "Weekly (Sunday midnight)";
   return cron;
 };

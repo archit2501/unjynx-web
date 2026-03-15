@@ -69,13 +69,57 @@ export const FLAG_TYPES = [
   { value: "permission", label: "Permission", color: "purple" },
 ] as const;
 
+// ── Admin Roles ─────────────────────────────────────────────────────
+export const ADMIN_ROLE_OPTIONS = [
+  { value: "user", label: "App User", color: "default" },
+  { value: "super_admin", label: "Super Admin", color: "gold" },
+  { value: "dev_admin", label: "Dev Admin", color: "purple" },
+] as const;
+
+// ── Task Priorities ─────────────────────────────────────────────────
+export const TASK_PRIORITY_OPTIONS = [
+  { value: "none", label: "None", color: "default" },
+  { value: "low", label: "Low", color: "blue" },
+  { value: "medium", label: "Medium", color: "orange" },
+  { value: "high", label: "High", color: "red" },
+  { value: "urgent", label: "Urgent", color: "magenta" },
+] as const;
+
+// ── Timezones ───────────────────────────────────────────────────────
+export const TIMEZONE_OPTIONS = [
+  { value: "Asia/Kolkata", label: "India (IST)" },
+  { value: "America/New_York", label: "US Eastern" },
+  { value: "America/Los_Angeles", label: "US Pacific" },
+  { value: "Europe/London", label: "UK (GMT)" },
+  { value: "Europe/Berlin", label: "Central Europe" },
+  { value: "Asia/Tokyo", label: "Japan (JST)" },
+  { value: "Asia/Dubai", label: "UAE (GST)" },
+  { value: "Australia/Sydney", label: "Australia (AEST)" },
+] as const;
+
 // ── Logto OIDC ───────────────────────────────────────────────────────
 export const LOGTO_ENDPOINT =
-  import.meta.env.VITE_LOGTO_ENDPOINT ?? "http://localhost:3301";
+  import.meta.env.VITE_LOGTO_ENDPOINT ?? "http://localhost:3001";
 export const LOGTO_APP_ID =
-  import.meta.env.VITE_LOGTO_APP_ID ?? "admin-app";
+  import.meta.env.VITE_LOGTO_APP_ID ?? "unjynx-admin-web";
+
+const basePath = import.meta.env.BASE_URL ?? "/admin/";
+const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3001";
 export const LOGTO_REDIRECT_URI =
-  import.meta.env.VITE_LOGTO_REDIRECT_URI ?? "http://localhost:3001/callback";
+  import.meta.env.VITE_LOGTO_REDIRECT_URI ?? `${origin}${basePath}callback`;
+
+// oidc-client-ts config (used by UserManager)
+export const LOGTO_CONFIG = {
+  authority: `${LOGTO_ENDPOINT}/oidc`,
+  clientId: LOGTO_APP_ID,
+  redirectUri: LOGTO_REDIRECT_URI,
+  postLogoutRedirectUri: `${origin}${basePath}`,
+  scopes: ["openid", "profile", "email"],
+  // API resource — must be registered in Logto admin console.
+  // Without this, Logto issues an opaque token (not JWT) and the
+  // backend auth middleware will reject it with 401.
+  resource: import.meta.env.VITE_LOGTO_API_RESOURCE ?? "https://api.unjynx.me",
+} as const;
 
 // ── Sidebar Menu Keys ────────────────────────────────────────────────
 export const MENU_KEYS = {

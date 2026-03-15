@@ -2,7 +2,7 @@
 // R2 - Database Management Page
 // ============================================================
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Typography,
   Space,
@@ -16,6 +16,8 @@ import {
   InputNumber,
   Row,
   Col,
+  Spin,
+  Alert,
   message,
 } from "antd";
 import {
@@ -42,150 +44,231 @@ import {
   getStatusColor,
 } from "@/utils/formatters";
 
-// --- Mock data ---
-const mockTables: ReadonlyArray<TableSchema> = [
-  {
-    name: "profiles",
-    rowCount: 1240,
-    sizeKB: 512,
-    columns: [
-      { name: "id", type: "uuid", nullable: false, defaultValue: "gen_random_uuid()", isPrimaryKey: true, isForeignKey: false, references: null },
-      { name: "logto_id", type: "varchar(64)", nullable: false, defaultValue: null, isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "display_name", type: "varchar(255)", nullable: false, defaultValue: null, isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "email", type: "varchar(255)", nullable: true, defaultValue: null, isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "avatar_url", type: "text", nullable: true, defaultValue: null, isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "timezone", type: "varchar(50)", nullable: false, defaultValue: "'UTC'", isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "created_at", type: "timestamptz", nullable: false, defaultValue: "now()", isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "updated_at", type: "timestamptz", nullable: false, defaultValue: "now()", isPrimaryKey: false, isForeignKey: false, references: null },
-    ],
-    indexes: [
-      { name: "profiles_pkey", columns: ["id"], unique: true, type: "btree" },
-      { name: "profiles_logto_id_idx", columns: ["logto_id"], unique: true, type: "btree" },
-      { name: "profiles_email_idx", columns: ["email"], unique: false, type: "btree" },
-    ],
-  },
-  {
-    name: "tasks",
-    rowCount: 48210,
-    sizeKB: 8192,
-    columns: [
-      { name: "id", type: "uuid", nullable: false, defaultValue: "gen_random_uuid()", isPrimaryKey: true, isForeignKey: false, references: null },
-      { name: "profile_id", type: "uuid", nullable: false, defaultValue: null, isPrimaryKey: false, isForeignKey: true, references: "profiles.id" },
-      { name: "title", type: "varchar(500)", nullable: false, defaultValue: null, isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "description", type: "text", nullable: true, defaultValue: null, isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "status", type: "varchar(20)", nullable: false, defaultValue: "'pending'", isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "priority", type: "integer", nullable: false, defaultValue: "0", isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "due_date", type: "timestamptz", nullable: true, defaultValue: null, isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "completed_at", type: "timestamptz", nullable: true, defaultValue: null, isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "created_at", type: "timestamptz", nullable: false, defaultValue: "now()", isPrimaryKey: false, isForeignKey: false, references: null },
-    ],
-    indexes: [
-      { name: "tasks_pkey", columns: ["id"], unique: true, type: "btree" },
-      { name: "tasks_profile_id_idx", columns: ["profile_id"], unique: false, type: "btree" },
-      { name: "tasks_status_idx", columns: ["status"], unique: false, type: "btree" },
-      { name: "tasks_fts_idx", columns: ["title", "description"], unique: false, type: "gin" },
-    ],
-  },
-  {
-    name: "projects",
-    rowCount: 3420,
-    sizeKB: 2048,
-    columns: [
-      { name: "id", type: "uuid", nullable: false, defaultValue: "gen_random_uuid()", isPrimaryKey: true, isForeignKey: false, references: null },
-      { name: "profile_id", type: "uuid", nullable: false, defaultValue: null, isPrimaryKey: false, isForeignKey: true, references: "profiles.id" },
-      { name: "name", type: "varchar(255)", nullable: false, defaultValue: null, isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "color", type: "varchar(7)", nullable: false, defaultValue: "'#6C5CE7'", isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "archived", type: "boolean", nullable: false, defaultValue: "false", isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "created_at", type: "timestamptz", nullable: false, defaultValue: "now()", isPrimaryKey: false, isForeignKey: false, references: null },
-    ],
-    indexes: [
-      { name: "projects_pkey", columns: ["id"], unique: true, type: "btree" },
-      { name: "projects_profile_id_idx", columns: ["profile_id"], unique: false, type: "btree" },
-    ],
-  },
-  {
-    name: "notifications",
-    rowCount: 124000,
-    sizeKB: 32768,
-    columns: [
-      { name: "id", type: "uuid", nullable: false, defaultValue: "gen_random_uuid()", isPrimaryKey: true, isForeignKey: false, references: null },
-      { name: "profile_id", type: "uuid", nullable: false, defaultValue: null, isPrimaryKey: false, isForeignKey: true, references: "profiles.id" },
-      { name: "task_id", type: "uuid", nullable: true, defaultValue: null, isPrimaryKey: false, isForeignKey: true, references: "tasks.id" },
-      { name: "channel", type: "varchar(20)", nullable: false, defaultValue: null, isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "status", type: "varchar(20)", nullable: false, defaultValue: "'pending'", isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "sent_at", type: "timestamptz", nullable: true, defaultValue: null, isPrimaryKey: false, isForeignKey: false, references: null },
-    ],
-    indexes: [
-      { name: "notifications_pkey", columns: ["id"], unique: true, type: "btree" },
-      { name: "notifications_profile_id_idx", columns: ["profile_id"], unique: false, type: "btree" },
-      { name: "notifications_status_idx", columns: ["status"], unique: false, type: "btree" },
-    ],
-  },
-  {
-    name: "daily_content",
-    rowCount: 2400,
-    sizeKB: 4096,
-    columns: [
-      { name: "id", type: "uuid", nullable: false, defaultValue: "gen_random_uuid()", isPrimaryKey: true, isForeignKey: false, references: null },
-      { name: "category", type: "varchar(50)", nullable: false, defaultValue: null, isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "content", type: "text", nullable: false, defaultValue: null, isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "author", type: "varchar(255)", nullable: true, defaultValue: null, isPrimaryKey: false, isForeignKey: false, references: null },
-      { name: "active", type: "boolean", nullable: false, defaultValue: "true", isPrimaryKey: false, isForeignKey: false, references: null },
-    ],
-    indexes: [
-      { name: "daily_content_pkey", columns: ["id"], unique: true, type: "btree" },
-      { name: "daily_content_category_idx", columns: ["category"], unique: false, type: "btree" },
-    ],
-  },
-];
+// --- Backend response types ---
 
-const mockMigrations: ReadonlyArray<Migration> = [
-  { id: "001", name: "create_profiles_table", appliedAt: "2026-02-15T10:00:00Z", duration: 120, status: "applied" },
-  { id: "002", name: "create_tasks_table", appliedAt: "2026-02-15T10:02:00Z", duration: 180, status: "applied" },
-  { id: "003", name: "create_projects_table", appliedAt: "2026-02-16T14:00:00Z", duration: 95, status: "applied" },
-  { id: "004", name: "add_fts_index", appliedAt: "2026-02-20T09:00:00Z", duration: 2400, status: "applied" },
-  { id: "005", name: "create_notifications_table", appliedAt: "2026-03-01T11:00:00Z", duration: 210, status: "applied" },
-  { id: "006", name: "add_notification_preferences", appliedAt: "2026-03-05T16:00:00Z", duration: 150, status: "applied" },
-  { id: "007", name: "create_delivery_attempts_table", appliedAt: "2026-03-08T10:00:00Z", duration: 180, status: "applied" },
-  { id: "008", name: "add_channel_verification", appliedAt: "2026-03-10T09:00:00Z", duration: 90, status: "applied" },
-];
+interface BackendTableInfo {
+  readonly tableName: string;
+  readonly rowCount: number;
+  readonly sizeBytes: number;
+  readonly columns: ReadonlyArray<{
+    readonly name: string;
+    readonly type: string;
+    readonly nullable: boolean;
+    readonly defaultValue: string | null;
+  }>;
+  readonly indexes: ReadonlyArray<{
+    readonly name: string;
+    readonly columns: string;
+    readonly isUnique: boolean;
+    readonly isPrimary: boolean;
+  }>;
+}
 
-const mockSlowQueries: ReadonlyArray<SlowQuery> = [
-  { id: "sq1", query: "SELECT * FROM tasks WHERE profile_id = $1 AND status = 'pending' ORDER BY due_date ASC LIMIT 100", duration: 245, timestamp: "2026-03-11T08:12:00Z", table: "tasks", rowsExamined: 12400 },
-  { id: "sq2", query: "SELECT t.*, p.name AS project_name FROM tasks t LEFT JOIN projects p ON t.project_id = p.id WHERE t.profile_id = $1", duration: 312, timestamp: "2026-03-11T07:45:00Z", table: "tasks", rowsExamined: 24800 },
-  { id: "sq3", query: "SELECT COUNT(*) FROM notifications WHERE profile_id = $1 AND status = 'delivered' GROUP BY channel", duration: 189, timestamp: "2026-03-11T06:30:00Z", table: "notifications", rowsExamined: 48000 },
-];
+interface BackendSlowQuery {
+  readonly query: string;
+  readonly callCount: number;
+  readonly totalTimeMs: number;
+  readonly meanTimeMs: number;
+  readonly maxTimeMs: number;
+  readonly minTimeMs: number;
+}
 
-const mockBackups: ReadonlyArray<DatabaseBackup> = [
-  { id: "b1", name: "daily-backup-2026-03-11", createdAt: "2026-03-11T02:00:00Z", sizeGB: 2.4, status: "completed", type: "full" },
-  { id: "b2", name: "daily-backup-2026-03-10", createdAt: "2026-03-10T02:00:00Z", sizeGB: 2.3, status: "completed", type: "full" },
-  { id: "b3", name: "incremental-2026-03-11-12", createdAt: "2026-03-11T12:00:00Z", sizeGB: 0.1, status: "in_progress", type: "incremental" },
-  { id: "b4", name: "daily-backup-2026-03-09", createdAt: "2026-03-09T02:00:00Z", sizeGB: 2.2, status: "completed", type: "full" },
-];
+interface BackendMigration {
+  readonly version: string;
+  readonly name: string;
+  readonly appliedAt: string;
+}
+
+interface BackendBackup {
+  readonly id: string;
+  readonly createdAt: string;
+  readonly sizeBytes: number;
+  readonly status: "completed" | "failed" | "in_progress";
+  readonly verified: boolean;
+  readonly lastVerifiedAt: string | null;
+}
+
+// --- Transform backend data to frontend types ---
+
+const transformTables = (
+  raw: ReadonlyArray<BackendTableInfo>
+): ReadonlyArray<TableSchema> =>
+  raw.map((t) => ({
+    name: t.tableName,
+    rowCount: t.rowCount,
+    sizeKB: Math.round(t.sizeBytes / 1024),
+    columns: t.columns.map((col) => {
+      // Infer primary key from indexes
+      const isPk = t.indexes.some(
+        (idx) =>
+          idx.isPrimary &&
+          idx.columns.split(",").map((c) => c.trim()).includes(col.name)
+      );
+      // Infer foreign key from column name convention (ends with _id and not primary)
+      const isFk = !isPk && col.name.endsWith("_id");
+      return {
+        name: col.name,
+        type: col.type,
+        nullable: col.nullable,
+        defaultValue: col.defaultValue,
+        isPrimaryKey: isPk,
+        isForeignKey: isFk,
+        references: null,
+      };
+    }),
+    indexes: t.indexes.map((idx) => ({
+      name: idx.name,
+      columns: idx.columns.split(",").map((c) => c.trim()),
+      unique: idx.isUnique,
+      type: idx.isPrimary ? "btree" : "btree",
+    })),
+  }));
+
+const transformMigrations = (
+  raw: ReadonlyArray<BackendMigration>
+): ReadonlyArray<Migration> =>
+  raw.map((m, idx) => ({
+    id: m.version || String(idx + 1),
+    name: m.name,
+    appliedAt: m.appliedAt,
+    duration: 0, // Backend does not provide duration
+    status: "applied" as const,
+  }));
+
+const transformSlowQueries = (
+  raw: ReadonlyArray<BackendSlowQuery>
+): ReadonlyArray<SlowQuery> =>
+  raw.map((sq, idx) => ({
+    id: `sq-${idx}`,
+    query: sq.query,
+    duration: Math.round(sq.meanTimeMs),
+    timestamp: new Date().toISOString(), // Backend provides aggregate stats, not per-occurrence timestamps
+    table: extractTableName(sq.query),
+    rowsExamined: sq.callCount,
+  }));
+
+const transformBackups = (
+  raw: ReadonlyArray<BackendBackup>
+): ReadonlyArray<DatabaseBackup> =>
+  raw.map((b) => ({
+    id: b.id,
+    name: `backup-${b.id}`,
+    createdAt: b.createdAt,
+    sizeGB: Number((b.sizeBytes / (1024 * 1024 * 1024)).toFixed(2)),
+    status: b.status,
+    type: "full" as const,
+  }));
+
+/**
+ * Extract table name from a SQL query string (best-effort).
+ */
+const extractTableName = (query: string): string => {
+  const fromMatch = query.match(/\bFROM\s+([a-z_][a-z0-9_]*)/i);
+  if (fromMatch) return fromMatch[1];
+  const intoMatch = query.match(/\bINTO\s+([a-z_][a-z0-9_]*)/i);
+  if (intoMatch) return intoMatch[1];
+  const updateMatch = query.match(/\bUPDATE\s+([a-z_][a-z0-9_]*)/i);
+  if (updateMatch) return updateMatch[1];
+  return "unknown";
+};
 
 export const DatabasePage: React.FC = () => {
   const [durationThreshold, setDurationThreshold] = useState(100);
   const [querySearch, setQuerySearch] = useState("");
 
-  const { isLoading } = useCustom({
+  // --- Fetch schema ---
+  const {
+    data: schemaData,
+    isLoading: schemaLoading,
+    isError: schemaError,
+  } = useCustom<ReadonlyArray<BackendTableInfo>>({
     url: "database/schema",
     method: "get",
     queryOptions: {
-      retry: false,
-      enabled: false,
-      queryKey: ["database-schema"],
+      queryKey: ["db-schema"],
     },
   });
 
-  const filteredQueries = mockSlowQueries.filter(
-    (q) =>
-      q.duration >= durationThreshold &&
-      (querySearch === "" ||
-        q.query.toLowerCase().includes(querySearch.toLowerCase()))
+  // --- Fetch migrations ---
+  const {
+    data: migrationsData,
+    isLoading: migrationsLoading,
+    isError: migrationsError,
+  } = useCustom<ReadonlyArray<BackendMigration>>({
+    url: "database/migrations",
+    method: "get",
+    queryOptions: {
+      queryKey: ["db-migrations"],
+    },
+  });
+
+  // --- Fetch slow queries ---
+  const {
+    data: slowQueryData,
+    isLoading: sqLoading,
+    isError: sqError,
+    refetch: refetchSlowQueries,
+  } = useCustom<ReadonlyArray<BackendSlowQuery>>({
+    url: "database/slow-queries",
+    method: "get",
+    config: {
+      query: {
+        durationMs: durationThreshold,
+        limit: 20,
+      },
+    },
+    queryOptions: {
+      queryKey: ["db-slow-queries", durationThreshold],
+    },
+  });
+
+  // --- Fetch backups ---
+  const {
+    data: backupsData,
+    isLoading: backupsLoading,
+    isError: backupsError,
+  } = useCustom<ReadonlyArray<BackendBackup>>({
+    url: "database/backups",
+    method: "get",
+    queryOptions: {
+      queryKey: ["db-backups"],
+    },
+  });
+
+  // --- Transform data ---
+  const tables: ReadonlyArray<TableSchema> = useMemo(
+    () => (schemaData?.data ? transformTables(schemaData.data as unknown as ReadonlyArray<BackendTableInfo>) : []),
+    [schemaData]
+  );
+
+  const migrations: ReadonlyArray<Migration> = useMemo(
+    () => (migrationsData?.data ? transformMigrations(migrationsData.data as unknown as ReadonlyArray<BackendMigration>) : []),
+    [migrationsData]
+  );
+
+  const slowQueries: ReadonlyArray<SlowQuery> = useMemo(
+    () => (slowQueryData?.data ? transformSlowQueries(slowQueryData.data as unknown as ReadonlyArray<BackendSlowQuery>) : []),
+    [slowQueryData]
+  );
+
+  const backups: ReadonlyArray<DatabaseBackup> = useMemo(
+    () => (backupsData?.data ? transformBackups(backupsData.data as unknown as ReadonlyArray<BackendBackup>) : []),
+    [backupsData]
+  );
+
+  // --- Filter slow queries by search ---
+  const filteredQueries = useMemo(
+    () =>
+      slowQueries.filter(
+        (q) =>
+          querySearch === "" ||
+          q.query.toLowerCase().includes(querySearch.toLowerCase())
+      ),
+    [slowQueries, querySearch]
   );
 
   const handleTriggerBackup = () => {
-    message.success("Backup triggered successfully");
+    message.info("Manual backup trigger is not yet implemented on the backend");
   };
 
   const tabItems = [
@@ -197,33 +280,43 @@ export const DatabasePage: React.FC = () => {
         </span>
       ),
       children: (
-        <Space direction="vertical" size={16} style={{ width: "100%" }}>
-          <Row gutter={[16, 16]}>
-            <Col xs={12} sm={6}>
-              <MetricPanel title="Tables" value={mockTables.length} />
-            </Col>
-            <Col xs={12} sm={6}>
-              <MetricPanel
-                title="Total Rows"
-                value={formatNumber(mockTables.reduce((sum, t) => sum + t.rowCount, 0))}
-              />
-            </Col>
-            <Col xs={12} sm={6}>
-              <MetricPanel
-                title="Total Size"
-                value={`${(mockTables.reduce((sum, t) => sum + t.sizeKB, 0) / 1024).toFixed(1)}`}
-                suffix="MB"
-              />
-            </Col>
-            <Col xs={12} sm={6}>
-              <MetricPanel
-                title="Indexes"
-                value={mockTables.reduce((sum, t) => sum + t.indexes.length, 0)}
-              />
-            </Col>
-          </Row>
-          <SchemaViewer tables={mockTables} loading={isLoading} />
-        </Space>
+        <Spin spinning={schemaLoading}>
+          {schemaError && (
+            <Alert
+              type="error"
+              message="Failed to load database schema"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+          )}
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <Row gutter={[16, 16]}>
+              <Col xs={12} sm={6}>
+                <MetricPanel title="Tables" value={tables.length} />
+              </Col>
+              <Col xs={12} sm={6}>
+                <MetricPanel
+                  title="Total Rows"
+                  value={formatNumber(tables.reduce((sum, t) => sum + t.rowCount, 0))}
+                />
+              </Col>
+              <Col xs={12} sm={6}>
+                <MetricPanel
+                  title="Total Size"
+                  value={`${(tables.reduce((sum, t) => sum + t.sizeKB, 0) / 1024).toFixed(1)}`}
+                  suffix="MB"
+                />
+              </Col>
+              <Col xs={12} sm={6}>
+                <MetricPanel
+                  title="Indexes"
+                  value={tables.reduce((sum, t) => sum + t.indexes.length, 0)}
+                />
+              </Col>
+            </Row>
+            <SchemaViewer tables={tables} loading={schemaLoading} />
+          </Space>
+        </Spin>
       ),
     },
     {
@@ -234,41 +327,51 @@ export const DatabasePage: React.FC = () => {
         </span>
       ),
       children: (
-        <Table
-          dataSource={[...mockMigrations].reverse() as Migration[]}
-          rowKey="id"
-          pagination={false}
-          columns={[
-            { title: "ID", dataIndex: "id", width: 60 },
-            {
-              title: "Migration",
-              dataIndex: "name",
-              render: (v: string) => (
-                <Typography.Text code style={{ fontSize: 12 }}>
-                  {v}
-                </Typography.Text>
-              ),
-            },
-            {
-              title: "Applied At",
-              dataIndex: "appliedAt",
-              render: (v: string) => formatTimestamp(v),
-              width: 180,
-            },
-            {
-              title: "Duration",
-              dataIndex: "duration",
-              render: (v: number) => formatDuration(v),
-              width: 100,
-            },
-            {
-              title: "Status",
-              dataIndex: "status",
-              render: (v: string) => <Tag color={getStatusColor(v)}>{v}</Tag>,
-              width: 100,
-            },
-          ]}
-        />
+        <Spin spinning={migrationsLoading}>
+          {migrationsError && (
+            <Alert
+              type="error"
+              message="Failed to load migrations"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+          )}
+          <Table
+            dataSource={[...migrations].reverse() as Migration[]}
+            rowKey="id"
+            pagination={false}
+            columns={[
+              { title: "ID", dataIndex: "id", width: 80 },
+              {
+                title: "Migration",
+                dataIndex: "name",
+                render: (v: string) => (
+                  <Typography.Text code style={{ fontSize: 12 }}>
+                    {v}
+                  </Typography.Text>
+                ),
+              },
+              {
+                title: "Applied At",
+                dataIndex: "appliedAt",
+                render: (v: string) => formatTimestamp(v),
+                width: 180,
+              },
+              {
+                title: "Duration",
+                dataIndex: "duration",
+                render: (v: number) => (v > 0 ? formatDuration(v) : "--"),
+                width: 100,
+              },
+              {
+                title: "Status",
+                dataIndex: "status",
+                render: (v: string) => <Tag color={getStatusColor(v)}>{v}</Tag>,
+                width: 100,
+              },
+            ]}
+          />
+        </Spin>
       ),
     },
     {
@@ -279,84 +382,101 @@ export const DatabasePage: React.FC = () => {
         </span>
       ),
       children: (
-        <Space direction="vertical" size={16} style={{ width: "100%" }}>
-          <Space>
-            <Typography.Text style={{ color: "#9CA3AF" }}>
-              Min duration (ms):
-            </Typography.Text>
-            <InputNumber
-              value={durationThreshold}
-              onChange={(v) => setDurationThreshold(v ?? 100)}
-              min={0}
-              step={50}
-              size="small"
-              style={{ width: 100 }}
+        <Spin spinning={sqLoading}>
+          {sqError && (
+            <Alert
+              type="error"
+              message="Failed to load slow queries"
+              showIcon
+              style={{ marginBottom: 16 }}
             />
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder="Search queries..."
-              value={querySearch}
-              onChange={(e) => setQuerySearch(e.target.value)}
-              allowClear
-              size="small"
-              style={{ width: 240 }}
+          )}
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <Space>
+              <Typography.Text style={{ color: "#9CA3AF" }}>
+                Min duration (ms):
+              </Typography.Text>
+              <InputNumber
+                value={durationThreshold}
+                onChange={(v) => setDurationThreshold(v ?? 100)}
+                min={0}
+                step={50}
+                size="small"
+                style={{ width: 100 }}
+              />
+              <Input
+                prefix={<SearchOutlined />}
+                placeholder="Search queries..."
+                value={querySearch}
+                onChange={(e) => setQuerySearch(e.target.value)}
+                allowClear
+                size="small"
+                style={{ width: 240 }}
+              />
+              <Button
+                size="small"
+                icon={<ReloadOutlined />}
+                onClick={() => refetchSlowQueries()}
+              >
+                Refresh
+              </Button>
+            </Space>
+            <Table
+              dataSource={filteredQueries as SlowQuery[]}
+              rowKey="id"
+              pagination={{ pageSize: 10 }}
+              expandable={{
+                expandedRowRender: (record: SlowQuery) => (
+                  <CodeBlock code={record.query} language="sql" />
+                ),
+              }}
+              columns={[
+                {
+                  title: "Query (truncated)",
+                  dataIndex: "query",
+                  render: (v: string) => (
+                    <Typography.Text
+                      code
+                      ellipsis
+                      style={{ maxWidth: 400, fontSize: 12, display: "block" }}
+                    >
+                      {v}
+                    </Typography.Text>
+                  ),
+                },
+                {
+                  title: "Mean Duration",
+                  dataIndex: "duration",
+                  render: (v: number) => (
+                    <Tag color={v > 200 ? "error" : v > 100 ? "warning" : "success"}>
+                      {formatDuration(v)}
+                    </Tag>
+                  ),
+                  sorter: (a: SlowQuery, b: SlowQuery) => a.duration - b.duration,
+                  width: 130,
+                },
+                {
+                  title: "Table",
+                  dataIndex: "table",
+                  render: (v: string) => <Tag>{v}</Tag>,
+                  width: 140,
+                },
+                {
+                  title: "Call Count",
+                  dataIndex: "rowsExamined",
+                  render: (v: number) => formatNumber(v),
+                  width: 130,
+                },
+                {
+                  title: "Time",
+                  dataIndex: "timestamp",
+                  render: (v: string) => formatRelativeTime(v),
+                  width: 140,
+                },
+              ]}
             />
           </Space>
-          <Table
-            dataSource={filteredQueries as SlowQuery[]}
-            rowKey="id"
-            pagination={{ pageSize: 10 }}
-            expandable={{
-              expandedRowRender: (record: SlowQuery) => (
-                <CodeBlock code={record.query} language="sql" />
-              ),
-            }}
-            columns={[
-              {
-                title: "Query (truncated)",
-                dataIndex: "query",
-                render: (v: string) => (
-                  <Typography.Text
-                    code
-                    ellipsis
-                    style={{ maxWidth: 400, fontSize: 12, display: "block" }}
-                  >
-                    {v}
-                  </Typography.Text>
-                ),
-              },
-              {
-                title: "Duration",
-                dataIndex: "duration",
-                render: (v: number) => (
-                  <Tag color={v > 200 ? "error" : v > 100 ? "warning" : "success"}>
-                    {formatDuration(v)}
-                  </Tag>
-                ),
-                sorter: (a: SlowQuery, b: SlowQuery) => a.duration - b.duration,
-                width: 110,
-              },
-              {
-                title: "Table",
-                dataIndex: "table",
-                render: (v: string) => <Tag>{v}</Tag>,
-                width: 140,
-              },
-              {
-                title: "Rows Examined",
-                dataIndex: "rowsExamined",
-                render: (v: number) => formatNumber(v),
-                width: 130,
-              },
-              {
-                title: "Time",
-                dataIndex: "timestamp",
-                render: (v: string) => formatRelativeTime(v),
-                width: 140,
-              },
-            ]}
-          />
-        </Space>
+        </Spin>
       ),
     },
     {
@@ -367,90 +487,100 @@ export const DatabasePage: React.FC = () => {
         </span>
       ),
       children: (
-        <Space direction="vertical" size={16} style={{ width: "100%" }}>
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button
-              type="primary"
-              icon={<PlayCircleOutlined />}
-              onClick={handleTriggerBackup}
-            >
-              Trigger Backup
-            </Button>
-          </div>
-          <Table
-            dataSource={mockBackups as unknown as DatabaseBackup[]}
-            rowKey="id"
-            pagination={false}
-            columns={[
-              {
-                title: "Backup Name",
-                dataIndex: "name",
-                render: (v: string) => (
-                  <Typography.Text code style={{ fontSize: 12 }}>
-                    {v}
-                  </Typography.Text>
-                ),
-              },
-              {
-                title: "Type",
-                dataIndex: "type",
-                render: (v: string) => (
-                  <Tag color={v === "full" ? "purple" : "blue"}>{v}</Tag>
-                ),
-                width: 110,
-              },
-              {
-                title: "Created",
-                dataIndex: "createdAt",
-                render: (v: string) => formatTimestamp(v),
-                width: 180,
-              },
-              {
-                title: "Size",
-                dataIndex: "sizeGB",
-                render: (v: number) => `${v} GB`,
-                width: 90,
-              },
-              {
-                title: "Status",
-                dataIndex: "status",
-                render: (v: string) => <Tag color={getStatusColor(v)}>{v.replace("_", " ")}</Tag>,
-                width: 120,
-              },
-              {
-                title: "Actions",
-                key: "actions",
-                width: 180,
-                render: (_: unknown, record: DatabaseBackup) => (
-                  <Space>
-                    <Button
-                      size="small"
-                      icon={<DownloadOutlined />}
-                      disabled={record.status !== "completed"}
-                    >
-                      Download
-                    </Button>
-                    <Popconfirm
-                      title="Restore this backup?"
-                      description="This will replace the current database."
-                      okText="Restore"
-                      okType="danger"
-                    >
+        <Spin spinning={backupsLoading}>
+          {backupsError && (
+            <Alert
+              type="error"
+              message="Failed to load backups"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+          )}
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <Button
+                type="primary"
+                icon={<PlayCircleOutlined />}
+                onClick={handleTriggerBackup}
+              >
+                Trigger Backup
+              </Button>
+            </div>
+            <Table
+              dataSource={backups as unknown as DatabaseBackup[]}
+              rowKey="id"
+              pagination={false}
+              columns={[
+                {
+                  title: "Backup Name",
+                  dataIndex: "name",
+                  render: (v: string) => (
+                    <Typography.Text code style={{ fontSize: 12 }}>
+                      {v}
+                    </Typography.Text>
+                  ),
+                },
+                {
+                  title: "Type",
+                  dataIndex: "type",
+                  render: (v: string) => (
+                    <Tag color={v === "full" ? "purple" : "blue"}>{v}</Tag>
+                  ),
+                  width: 110,
+                },
+                {
+                  title: "Created",
+                  dataIndex: "createdAt",
+                  render: (v: string) => formatTimestamp(v),
+                  width: 180,
+                },
+                {
+                  title: "Size",
+                  dataIndex: "sizeGB",
+                  render: (v: number) => `${v} GB`,
+                  width: 90,
+                },
+                {
+                  title: "Status",
+                  dataIndex: "status",
+                  render: (v: string) => <Tag color={getStatusColor(v)}>{v.replace("_", " ")}</Tag>,
+                  width: 120,
+                },
+                {
+                  title: "Actions",
+                  key: "actions",
+                  width: 180,
+                  render: (_: unknown, record: DatabaseBackup) => (
+                    <Space>
                       <Button
                         size="small"
-                        icon={<ReloadOutlined />}
-                        danger
+                        icon={<DownloadOutlined />}
                         disabled={record.status !== "completed"}
                       >
-                        Restore
+                        Download
                       </Button>
-                    </Popconfirm>
-                  </Space>
-                ),
-              },
-            ]}
-          />
-        </Space>
+                      <Popconfirm
+                        title="Restore this backup?"
+                        description="This will replace the current database."
+                        okText="Restore"
+                        okType="danger"
+                      >
+                        <Button
+                          size="small"
+                          icon={<ReloadOutlined />}
+                          danger
+                          disabled={record.status !== "completed"}
+                        >
+                          Restore
+                        </Button>
+                      </Popconfirm>
+                    </Space>
+                  ),
+                },
+              ]}
+            />
+          </Space>
+        </Spin>
       ),
     },
   ];

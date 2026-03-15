@@ -18,6 +18,8 @@ import {
   Slider,
   Popconfirm,
   message,
+  Spin,
+  Alert,
 } from "antd";
 import {
   CloudServerOutlined,
@@ -28,6 +30,7 @@ import {
   EyeOutlined,
   CopyOutlined,
 } from "@ant-design/icons";
+import { useCustom } from "@refinedev/core";
 import { ServiceCard } from "@/components/charts/ServiceCard";
 import type { DeployService, DeployHistory, FeatureFlag, EnvVariable } from "@/types";
 import { COLORS } from "@/utils/constants";
@@ -39,23 +42,46 @@ import {
   maskSecret,
 } from "@/utils/formatters";
 
-// --- Mock data ---
-const mockServices: DeployService[] = [
-  { name: "Backend API", status: "running", version: "v1.3.2", lastDeploy: "2026-03-11T08:00:00Z", environment: "production" },
-  { name: "Landing Page", status: "running", version: "v2.1.0", lastDeploy: "2026-03-10T14:00:00Z", environment: "production" },
-  { name: "Admin Portal", status: "running", version: "v1.0.5", lastDeploy: "2026-03-09T10:00:00Z", environment: "production" },
-  { name: "Queue Workers", status: "running", version: "v1.3.2", lastDeploy: "2026-03-11T08:00:00Z", environment: "production" },
-];
+// --- Backend response types ---
+interface BackendService {
+  readonly service: string;
+  readonly status: "running" | "stopped" | "deploying";
+  readonly version: string;
+  readonly lastDeployedAt: string;
+  readonly environment: string;
+}
 
-const mockDeployHistory: DeployHistory[] = [
-  { id: "d1", service: "Backend API", timestamp: "2026-03-11T08:00:00Z", commit: "a1b2c3d", deployer: "CI/CD", status: "success", duration: 142000 },
-  { id: "d2", service: "Queue Workers", timestamp: "2026-03-11T08:00:00Z", commit: "a1b2c3d", deployer: "CI/CD", status: "success", duration: 98000 },
-  { id: "d3", service: "Landing Page", timestamp: "2026-03-10T14:00:00Z", commit: "e5f6g7h", deployer: "developer@unjynx.com", status: "success", duration: 65000 },
-  { id: "d4", service: "Admin Portal", timestamp: "2026-03-09T10:00:00Z", commit: "i8j9k0l", deployer: "CI/CD", status: "success", duration: 82000 },
-  { id: "d5", service: "Backend API", timestamp: "2026-03-08T16:00:00Z", commit: "m1n2o3p", deployer: "developer@unjynx.com", status: "rolled_back", duration: 180000 },
-  { id: "d6", service: "Backend API", timestamp: "2026-03-07T12:00:00Z", commit: "q4r5s6t", deployer: "CI/CD", status: "success", duration: 135000 },
-];
+interface BackendDeployment {
+  readonly id: string;
+  readonly service: string;
+  readonly commit: string;
+  readonly deployer: string;
+  readonly status: "success" | "failed" | "rolling_back" | "in_progress";
+  readonly durationMs: number;
+  readonly deployedAt: string;
+  readonly environment: string;
+}
 
+// --- Map backend responses to frontend types ---
+const mapService = (raw: BackendService): DeployService => ({
+  name: raw.service,
+  status: raw.status === "deploying" ? "deploying" : raw.status,
+  version: raw.version,
+  lastDeploy: raw.lastDeployedAt,
+  environment: raw.environment,
+});
+
+const mapDeployment = (raw: BackendDeployment): DeployHistory => ({
+  id: raw.id,
+  service: raw.service,
+  timestamp: raw.deployedAt,
+  commit: raw.commit,
+  deployer: raw.deployer,
+  status: raw.status === "rolling_back" ? "rolled_back" : raw.status,
+  duration: raw.durationMs,
+});
+
+// --- Mock data for tabs without backend endpoints ---
 const mockFeatureFlags: FeatureFlag[] = [
   { id: "ff1", name: "ai_chat_enabled", description: "Enable AI chat feature for users", enabled: false, environment: "production", updatedAt: "2026-03-10T10:00:00Z", updatedBy: "admin" },
   { id: "ff2", name: "ghost_mode_v2", description: "Ghost mode with enhanced privacy controls", enabled: true, environment: "production", updatedAt: "2026-03-09T14:00:00Z", updatedBy: "developer" },
@@ -80,6 +106,37 @@ export const DeploymentPage: React.FC = () => {
   const [revealedSecrets, setRevealedSecrets] = useState<Set<string>>(new Set());
   const [canaryPercent, setCanaryPercent] = useState(10);
   const [envFilter, setEnvFilter] = useState<string>("all");
+  const [messageApi, contextHolder] = message.useMessage();
+
+  // --- Fetch services from backend ---
+  const {
+    data: servicesResponse,
+    isLoading: isLoadingServices,
+  } = useCustom<BackendService[]>({
+    url: "services",
+    method: "get",
+    queryOptions: {
+      retry: 1,
+      queryKey: ["services"],
+    },
+  });
+
+  const services: DeployService[] = (servicesResponse?.data ?? []).map(mapService);
+
+  // --- Fetch deployment history from backend ---
+  const {
+    data: deploymentsResponse,
+    isLoading: isLoadingDeployments,
+  } = useCustom<BackendDeployment[]>({
+    url: "deployments",
+    method: "get",
+    queryOptions: {
+      retry: 1,
+      queryKey: ["deployments"],
+    },
+  });
+
+  const deployHistory: DeployHistory[] = (deploymentsResponse?.data ?? []).map(mapDeployment);
 
   const toggleSecret = (key: string) => {
     setRevealedSecrets((prev) => {
@@ -100,28 +157,40 @@ export const DeploymentPage: React.FC = () => {
 
   return (
     <Space direction="vertical" size={24} style={{ width: "100%" }}>
+      {contextHolder}
       <Typography.Title level={3} style={{ margin: 0, color: COLORS.white }}>
         Deployment
       </Typography.Title>
 
       {/* Service Status Cards */}
-      <Row gutter={[16, 16]}>
-        {mockServices.map((svc) => (
-          <Col key={svc.name} xs={24} sm={12} lg={6}>
-            <ServiceCard
-              title={svc.name}
-              status={svc.status === "running" ? "healthy" : svc.status === "error" ? "down" : "degraded"}
-              lastCheck={svc.lastDeploy}
-              icon={<CloudServerOutlined style={{ color: COLORS.violet }} />}
-              metrics={[
-                { label: "Version", value: svc.version },
-                { label: "Environment", value: svc.environment },
-                { label: "Last Deploy", value: formatRelativeTime(svc.lastDeploy) },
-              ]}
-            />
-          </Col>
-        ))}
-      </Row>
+      <Spin spinning={isLoadingServices}>
+        <Row gutter={[16, 16]}>
+          {services.map((svc) => (
+            <Col key={svc.name} xs={24} sm={12} lg={6}>
+              <ServiceCard
+                title={svc.name}
+                status={svc.status === "running" ? "healthy" : svc.status === "error" ? "down" : "degraded"}
+                lastCheck={svc.lastDeploy}
+                icon={<CloudServerOutlined style={{ color: COLORS.violet }} />}
+                metrics={[
+                  { label: "Version", value: svc.version },
+                  { label: "Environment", value: svc.environment },
+                  { label: "Last Deploy", value: formatRelativeTime(svc.lastDeploy) },
+                ]}
+              />
+            </Col>
+          ))}
+          {!isLoadingServices && services.length === 0 && (
+            <Col span={24}>
+              <Card style={{ background: "#1A1528", border: "1px solid #2D2640", textAlign: "center", padding: 24 }}>
+                <Typography.Text style={{ color: "#6B7280" }}>
+                  No services found. The backend may not be reachable.
+                </Typography.Text>
+              </Card>
+            </Col>
+          )}
+        </Row>
+      </Spin>
 
       {/* Deploy History */}
       <Card
@@ -135,9 +204,10 @@ export const DeploymentPage: React.FC = () => {
         styles={{ header: { borderBottom: "1px solid #2D2640" } }}
       >
         <Table
-          dataSource={mockDeployHistory}
+          dataSource={deployHistory}
           rowKey="id"
           pagination={{ pageSize: 10 }}
+          loading={isLoadingDeployments}
           columns={[
             {
               title: "Service",
@@ -209,56 +279,64 @@ export const DeploymentPage: React.FC = () => {
         style={{ background: "#1A1528", border: "1px solid #2D2640" }}
         styles={{ header: { borderBottom: "1px solid #2D2640" } }}
       >
-        <Table
-          dataSource={filteredFlags}
-          rowKey="id"
-          pagination={false}
-          columns={[
-            {
-              title: "Flag",
-              dataIndex: "name",
-              render: (v: string) => (
-                <Typography.Text code style={{ fontSize: 12 }}>
-                  {v}
-                </Typography.Text>
-              ),
-            },
-            { title: "Description", dataIndex: "description" },
-            {
-              title: "Environment",
-              dataIndex: "environment",
-              render: (v: string) => (
-                <Tag color={v === "production" ? "red" : v === "staging" ? "orange" : "blue"}>
-                  {v}
-                </Tag>
-              ),
-              width: 120,
-            },
-            {
-              title: "Enabled",
-              dataIndex: "enabled",
-              render: (v: boolean, record: FeatureFlag) => (
-                <Switch
-                  checked={v}
-                  size="small"
-                  onChange={() => message.info(`Flag ${record.name} toggled`)}
-                />
-              ),
-              width: 80,
-            },
-            {
-              title: "Updated",
-              dataIndex: "updatedAt",
-              render: (v: string) => formatRelativeTime(v),
-              width: 120,
-            },
-            {
-              title: "By",
-              dataIndex: "updatedBy",
-              width: 100,
-            },
-          ]}
-        />
+        <Space direction="vertical" size={12} style={{ width: "100%" }}>
+          <Alert
+            message="Feature flag management is handled via admin panel"
+            type="info"
+            showIcon
+            style={{ background: "#1A1528", border: "1px solid #2D2640" }}
+          />
+          <Table
+            dataSource={filteredFlags}
+            rowKey="id"
+            pagination={false}
+            columns={[
+              {
+                title: "Flag",
+                dataIndex: "name",
+                render: (v: string) => (
+                  <Typography.Text code style={{ fontSize: 12 }}>
+                    {v}
+                  </Typography.Text>
+                ),
+              },
+              { title: "Description", dataIndex: "description" },
+              {
+                title: "Environment",
+                dataIndex: "environment",
+                render: (v: string) => (
+                  <Tag color={v === "production" ? "red" : v === "staging" ? "orange" : "blue"}>
+                    {v}
+                  </Tag>
+                ),
+                width: 120,
+              },
+              {
+                title: "Enabled",
+                dataIndex: "enabled",
+                render: (v: boolean, record: FeatureFlag) => (
+                  <Switch
+                    checked={v}
+                    size="small"
+                    onChange={() => messageApi.info(`Flag ${record.name} toggled`)}
+                  />
+                ),
+                width: 80,
+              },
+              {
+                title: "Updated",
+                dataIndex: "updatedAt",
+                render: (v: string) => formatRelativeTime(v),
+                width: 120,
+              },
+              {
+                title: "By",
+                dataIndex: "updatedBy",
+                width: 100,
+              },
+            ]}
+          />
+        </Space>
       </Card>
 
       {/* Environment Variables */}
@@ -272,75 +350,83 @@ export const DeploymentPage: React.FC = () => {
         style={{ background: "#1A1528", border: "1px solid #2D2640" }}
         styles={{ header: { borderBottom: "1px solid #2D2640" } }}
       >
-        <Table
-          dataSource={mockEnvVars}
-          rowKey="key"
-          pagination={false}
-          columns={[
-            {
-              title: "Key",
-              dataIndex: "key",
-              render: (v: string) => (
-                <Typography.Text code style={{ fontSize: 12 }}>
-                  {v}
-                </Typography.Text>
-              ),
-            },
-            {
-              title: "Value",
-              key: "value",
-              render: (_: unknown, record: EnvVariable) => (
-                <Space>
-                  <Typography.Text
-                    code
-                    style={{ fontSize: 12, maxWidth: 300, display: "block" }}
-                    ellipsis
-                  >
-                    {record.isSecret && !revealedSecrets.has(record.key)
-                      ? maskSecret(record.value)
-                      : record.value}
+        <Space direction="vertical" size={12} style={{ width: "100%" }}>
+          <Alert
+            message="Server environment preview (read-only)"
+            type="info"
+            showIcon
+            style={{ background: "#1A1528", border: "1px solid #2D2640" }}
+          />
+          <Table
+            dataSource={mockEnvVars}
+            rowKey="key"
+            pagination={false}
+            columns={[
+              {
+                title: "Key",
+                dataIndex: "key",
+                render: (v: string) => (
+                  <Typography.Text code style={{ fontSize: 12 }}>
+                    {v}
                   </Typography.Text>
-                  {record.isSecret && (
+                ),
+              },
+              {
+                title: "Value",
+                key: "value",
+                render: (_: unknown, record: EnvVariable) => (
+                  <Space>
+                    <Typography.Text
+                      code
+                      style={{ fontSize: 12, maxWidth: 300, display: "block" }}
+                      ellipsis
+                    >
+                      {record.isSecret && !revealedSecrets.has(record.key)
+                        ? maskSecret(record.value)
+                        : record.value}
+                    </Typography.Text>
+                    {record.isSecret && (
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={
+                          revealedSecrets.has(record.key) ? (
+                            <EyeInvisibleOutlined />
+                          ) : (
+                            <EyeOutlined />
+                          )
+                        }
+                        onClick={() => toggleSecret(record.key)}
+                      />
+                    )}
                     <Button
                       type="text"
                       size="small"
-                      icon={
-                        revealedSecrets.has(record.key) ? (
-                          <EyeInvisibleOutlined />
-                        ) : (
-                          <EyeOutlined />
-                        )
-                      }
-                      onClick={() => toggleSecret(record.key)}
+                      icon={<CopyOutlined />}
+                      onClick={() => {
+                        navigator.clipboard.writeText(record.value);
+                        messageApi.success("Copied");
+                      }}
                     />
-                  )}
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<CopyOutlined />}
-                    onClick={() => {
-                      navigator.clipboard.writeText(record.value);
-                      message.success("Copied");
-                    }}
-                  />
-                </Space>
-              ),
-            },
-            {
-              title: "Secret",
-              dataIndex: "isSecret",
-              render: (v: boolean) =>
-                v ? <Tag color="red">SECRET</Tag> : <Tag>PUBLIC</Tag>,
-              width: 90,
-            },
-            {
-              title: "Updated",
-              dataIndex: "updatedAt",
-              render: (v: string) => formatRelativeTime(v),
-              width: 120,
-            },
-          ]}
-        />
+                  </Space>
+                ),
+              },
+              {
+                title: "Secret",
+                dataIndex: "isSecret",
+                render: (v: boolean) =>
+                  v ? <Tag color="red">SECRET</Tag> : <Tag>PUBLIC</Tag>,
+                width: 90,
+              },
+              {
+                title: "Updated",
+                dataIndex: "updatedAt",
+                render: (v: string) => formatRelativeTime(v),
+                width: 120,
+              },
+            ]}
+          />
+        </Space>
       </Card>
 
       {/* Canary Deployment Controls */}
@@ -386,7 +472,7 @@ export const DeploymentPage: React.FC = () => {
             <Space>
               <Popconfirm
                 title={`Deploy canary at ${canaryPercent}%?`}
-                onConfirm={() => message.success("Canary deployment started")}
+                onConfirm={() => messageApi.success("Canary deployment started")}
               >
                 <Button type="primary" icon={<RocketOutlined />}>
                   Start Canary
@@ -396,7 +482,7 @@ export const DeploymentPage: React.FC = () => {
                 title="Promote canary to 100%?"
                 onConfirm={() => {
                   setCanaryPercent(100);
-                  message.success("Canary promoted to production");
+                  messageApi.success("Canary promoted to production");
                 }}
               >
                 <Button>Promote</Button>
@@ -405,7 +491,7 @@ export const DeploymentPage: React.FC = () => {
                 title="Rollback canary deployment?"
                 onConfirm={() => {
                   setCanaryPercent(0);
-                  message.warning("Canary rolled back");
+                  messageApi.warning("Canary rolled back");
                 }}
               >
                 <Button danger>Rollback</Button>

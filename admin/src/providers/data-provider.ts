@@ -1,6 +1,6 @@
 import type { DataProvider } from "@refinedev/core";
 import { API_BASE_URL, API_ADMIN_PREFIX } from "../utils/constants";
-import { getAccessToken } from "./auth-provider";
+import { userManager } from "./auth-provider";
 
 function buildUrl(resource: string, params?: Record<string, string>): string {
   const base = `${API_BASE_URL}${API_ADMIN_PREFIX}/${resource}`;
@@ -17,14 +17,20 @@ function buildUrl(resource: string, params?: Record<string, string>): string {
   return qs ? `${base}?${qs}` : base;
 }
 
-function authHeaders(): HeadersInit {
-  const token = getAccessToken();
+async function authHeaders(): Promise<HeadersInit> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+
+  try {
+    const user = await userManager.getUser();
+    if (user?.access_token) {
+      headers["Authorization"] = `Bearer ${user.access_token}`;
+    }
+  } catch {
+    // Fall through without auth header
   }
+
   return headers;
 }
 
@@ -68,7 +74,7 @@ export const dataProvider: DataProvider = {
     }
 
     const url = buildUrl(resource, queryParams);
-    const response = await fetch(url, { headers: authHeaders() });
+    const response = await fetch(url, { headers: await authHeaders() });
     const json = await handleResponse<{
       success: boolean;
       data: unknown[];
@@ -83,7 +89,7 @@ export const dataProvider: DataProvider = {
 
   getOne: async ({ resource, id }) => {
     const url = buildUrl(`${resource}/${id}`);
-    const response = await fetch(url, { headers: authHeaders() });
+    const response = await fetch(url, { headers: await authHeaders() });
     const json = await handleResponse<{ success: boolean; data: unknown }>(response);
 
     return { data: json.data as never };
@@ -93,7 +99,7 @@ export const dataProvider: DataProvider = {
     const url = buildUrl(resource);
     const response = await fetch(url, {
       method: "POST",
-      headers: authHeaders(),
+      headers: await authHeaders(),
       body: JSON.stringify(variables),
     });
     const json = await handleResponse<{ success: boolean; data: unknown }>(response);
@@ -105,7 +111,7 @@ export const dataProvider: DataProvider = {
     const url = buildUrl(`${resource}/${id}`);
     const response = await fetch(url, {
       method: "PATCH",
-      headers: authHeaders(),
+      headers: await authHeaders(),
       body: JSON.stringify(variables),
     });
     const json = await handleResponse<{ success: boolean; data: unknown }>(response);
@@ -117,7 +123,7 @@ export const dataProvider: DataProvider = {
     const url = buildUrl(`${resource}/${id}`);
     const response = await fetch(url, {
       method: "DELETE",
-      headers: authHeaders(),
+      headers: await authHeaders(),
     });
     const json = await handleResponse<{ success: boolean; data: unknown }>(response);
 
@@ -134,7 +140,7 @@ export const dataProvider: DataProvider = {
     const fetchOptions: RequestInit = {
       method: method.toUpperCase(),
       headers: {
-        ...authHeaders(),
+        ...(await authHeaders()),
         ...(customHeaders as Record<string, string>),
       },
     };

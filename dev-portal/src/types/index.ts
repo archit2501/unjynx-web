@@ -315,6 +315,15 @@ export interface AbTestConfig {
 
 // --- Channel Providers (R7) ---
 
+export interface ProviderStatus {
+  readonly channel: string;
+  readonly provider: string;
+  readonly apiHealthy: boolean;
+  readonly lastHealthCheck: string;
+  readonly credentials: "configured" | "missing" | "expired";
+  readonly details: Record<string, unknown>;
+}
+
 export interface TelegramBotStatus {
   readonly botUsername: string;
   readonly isOnline: boolean;
@@ -422,6 +431,162 @@ export interface PipelineMetric {
   readonly errorRate: number;
   readonly lag: number;
   readonly history: ReadonlyArray<{ readonly time: string; readonly value: number }>;
+}
+
+// --- Backend API Response Types ---
+// These match the exact shapes returned by /api/v1/dev-portal/* endpoints
+
+export interface ApiServiceStatus {
+  readonly name: string;
+  readonly status: "healthy" | "degraded" | "down";
+  readonly uptime: number;
+  readonly responseTimeMs: number;
+  readonly errorRate: number;
+  readonly details?: Record<string, unknown>;
+}
+
+export interface ApiHealthResponse {
+  readonly services: ReadonlyArray<ApiServiceStatus>;
+  readonly overallStatus: "healthy" | "degraded" | "down";
+}
+
+export interface ApiTableInfo {
+  readonly tableName: string;
+  readonly rowCount: number;
+  readonly sizeBytes: number;
+  readonly columns: ReadonlyArray<{
+    readonly name: string;
+    readonly type: string;
+    readonly nullable: boolean;
+    readonly defaultValue: string | null;
+  }>;
+  readonly indexes: ReadonlyArray<{
+    readonly name: string;
+    readonly columns: string;
+    readonly isUnique: boolean;
+    readonly isPrimary: boolean;
+  }>;
+}
+
+export interface ApiSlowQuery {
+  readonly query: string;
+  readonly callCount: number;
+  readonly totalTimeMs: number;
+  readonly meanTimeMs: number;
+  readonly maxTimeMs: number;
+  readonly minTimeMs: number;
+}
+
+export interface ApiMigration {
+  readonly version: string;
+  readonly name: string;
+  readonly appliedAt: string;
+}
+
+export interface ApiBackup {
+  readonly id: string;
+  readonly createdAt: string;
+  readonly sizeBytes: number;
+  readonly status: "completed" | "failed" | "in_progress";
+  readonly verified: boolean;
+  readonly lastVerifiedAt: string | null;
+}
+
+export interface ApiEndpointUsage {
+  readonly endpoint: string;
+  readonly method: string;
+  readonly totalRequests: number;
+  readonly avgResponseMs: number;
+  readonly errorCount: number;
+  readonly lastCalledAt: string;
+}
+
+export interface ApiAiModel {
+  readonly key: string;
+  readonly modelId: string;
+  readonly provider: string;
+  readonly maxTokens: number;
+  readonly temperature: number;
+  readonly isActive: boolean;
+}
+
+export interface ApiAiUsage {
+  readonly modelKey: string;
+  readonly totalRequests: number;
+  readonly totalTokens: number;
+  readonly avgResponseMs: number;
+  readonly errorRate: number;
+  readonly costUsd: number;
+}
+
+export interface ApiProviderStatus {
+  readonly channel: string;
+  readonly provider: string;
+  readonly apiHealthy: boolean;
+  readonly lastHealthCheck: string;
+  readonly credentials: "configured" | "missing" | "expired";
+  readonly details: Record<string, unknown>;
+}
+
+export interface ApiPipelineStatus {
+  readonly name: string;
+  readonly description: string;
+  readonly schedule: string;
+  readonly lastRun: string | null;
+  readonly nextRun: string;
+  readonly status: "idle" | "running" | "succeeded" | "failed";
+  readonly durationMs: number | null;
+  readonly errorMessage: string | null;
+}
+
+export interface ApiChannelHealth {
+  readonly channel: string;
+  readonly provider: string;
+  readonly status: "healthy" | "degraded" | "down";
+  readonly deliveryRate: number;
+  readonly messagesSentToday: number;
+  readonly costToday: number;
+  readonly lastCheckedAt: string;
+  readonly details: Record<string, unknown>;
+}
+
+export interface ApiQueueDepth {
+  readonly queue: string;
+  readonly active: number;
+  readonly waiting: number;
+  readonly delayed: number;
+  readonly failed: number;
+  readonly completed: number;
+  readonly processingRate: number;
+}
+
+export interface ApiDeployEntry {
+  readonly id: string;
+  readonly service: string;
+  readonly commit: string;
+  readonly deployer: string;
+  readonly status: "success" | "failed" | "rolling_back" | "in_progress";
+  readonly durationMs: number;
+  readonly deployedAt: string;
+  readonly environment: string;
+}
+
+export interface ApiServiceDeployStatus {
+  readonly service: string;
+  readonly status: "running" | "stopped" | "deploying";
+  readonly version: string;
+  readonly lastDeployedAt: string;
+  readonly environment: string;
+}
+
+export interface ApiKeyResponse {
+  readonly id: string;
+  readonly name: string;
+  readonly scopes: ReadonlyArray<string>;
+  readonly createdAt: string;
+  readonly expiresAt: string;
+  readonly lastUsedAt: string | null;
+  readonly isActive: boolean;
 }
 
 // --- Common ---

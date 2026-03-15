@@ -1,22 +1,19 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Typography,
   Card,
   Table,
   Tabs,
   Tag,
-  Select,
   Input,
   Row,
   Col,
   Button,
   Space,
-  Descriptions,
-  Timeline,
   Alert,
   List,
-  Popconfirm,
-  message,
+  Spin,
+  Statistic,
 } from "antd";
 import {
   SearchOutlined,
@@ -27,42 +24,14 @@ import {
   ClockCircleOutlined,
 } from "@ant-design/icons";
 import { useTable } from "@refinedev/antd";
-import { formatDateTime, formatDate } from "../../utils/formatters";
-import { BRAND_COLORS } from "../../utils/constants";
+import { useCustom } from "@refinedev/core";
+import { formatDateTime, formatDate, formatNumber } from "../../utils/formatters";
+import { API_BASE_URL, API_ADMIN_PREFIX, BRAND_COLORS } from "../../utils/constants";
 import type { AuditLogRecord } from "../../types";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
-// Sample GDPR requests
-const GDPR_REQUESTS = [
-  {
-    id: "gdpr-001",
-    userId: "user-123",
-    email: "arjun@example.com",
-    type: "export",
-    status: "pending",
-    requestedAt: "2026-03-10T14:00:00Z",
-  },
-  {
-    id: "gdpr-002",
-    userId: "user-456",
-    email: "priya@example.com",
-    type: "deletion",
-    status: "completed",
-    requestedAt: "2026-03-08T10:00:00Z",
-    completedAt: "2026-03-09T10:00:00Z",
-  },
-  {
-    id: "gdpr-003",
-    userId: "user-789",
-    email: "rahul@example.com",
-    type: "export",
-    status: "processing",
-    requestedAt: "2026-03-11T08:00:00Z",
-  },
-];
-
-// Data retention policies
+// Data retention policies (config, not DB)
 const RETENTION_POLICIES = [
   {
     category: "User Profiles",
@@ -102,15 +71,14 @@ const RETENTION_POLICIES = [
   },
 ];
 
-// Consent types
-const CONSENT_RECORDS = [
-  { type: "Marketing Emails", collected: true, required: false, users: 650 },
-  { type: "Push Notifications", collected: true, required: false, users: 820 },
-  { type: "WhatsApp Messages", collected: true, required: false, users: 380 },
-  { type: "Analytics Tracking", collected: true, required: false, users: 890 },
-  { type: "Terms of Service", collected: true, required: true, users: 900 },
-  { type: "Privacy Policy", collected: true, required: true, users: 900 },
-];
+interface ComplianceSummary {
+  totalUsers: number;
+  usersWithEmail: number;
+  usersWithoutEmail: number;
+  dataRetentionDays: number;
+  auditLogEntries: number;
+  oldestAuditEntry: string | null;
+}
 
 export const CompliancePage: React.FC = () => {
   const { tableProps, setFilters } = useTable<AuditLogRecord>({
@@ -119,13 +87,12 @@ export const CompliancePage: React.FC = () => {
     sorters: { initial: [{ field: "createdAt", order: "desc" }] },
   });
 
-  const handleExport = (requestId: string) => {
-    message.success(`Data export initiated for ${requestId}`);
-  };
+  const { data: summaryData, isLoading: summaryLoading } = useCustom<ComplianceSummary>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/compliance/summary`,
+    method: "get",
+  });
 
-  const handleProcessDeletion = (requestId: string) => {
-    message.success(`Deletion request ${requestId} processing started`);
-  };
+  const summary = summaryData?.data as unknown as ComplianceSummary | undefined;
 
   const auditColumns = [
     {
@@ -147,11 +114,14 @@ export const CompliancePage: React.FC = () => {
       dataIndex: "userId",
       key: "userId",
       width: 140,
-      render: (id: string) => (
-        <Text code style={{ fontSize: 11 }}>
-          {id.slice(0, 12)}...
-        </Text>
-      ),
+      render: (id: string | null) =>
+        id ? (
+          <Text code style={{ fontSize: 11 }}>
+            {id.slice(0, 12)}...
+          </Text>
+        ) : (
+          <Text type="secondary">-</Text>
+        ),
     },
     {
       title: "Resource",
@@ -201,6 +171,36 @@ export const CompliancePage: React.FC = () => {
       <Title level={3} style={{ marginBottom: 24 }}>
         Compliance
       </Title>
+
+      {/* Summary Stats */}
+      {!summaryLoading && summary && (
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={12} sm={6}>
+            <Card bordered={false} size="small">
+              <Statistic title="Total Users" value={summary.totalUsers} />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card bordered={false} size="small">
+              <Statistic title="With Email" value={summary.usersWithEmail} />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card bordered={false} size="small">
+              <Statistic title="Audit Entries" value={formatNumber(summary.auditLogEntries)} />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card bordered={false} size="small">
+              <Statistic
+                title="Oldest Audit"
+                value={summary.oldestAuditEntry ? formatDate(summary.oldestAuditEntry) : "None"}
+                valueStyle={{ fontSize: 16 }}
+              />
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       <Tabs
         defaultActiveKey="audit"
@@ -287,86 +287,40 @@ export const CompliancePage: React.FC = () => {
                 />
 
                 <Card bordered={false}>
-                  <Title level={5}>Data Subject Requests</Title>
-                  <Table
-                    dataSource={GDPR_REQUESTS}
-                    rowKey="id"
-                    size="middle"
-                    pagination={false}
-                    columns={[
-                      {
-                        title: "Request ID",
-                        dataIndex: "id",
-                        key: "id",
-                        render: (id: string) => <Text code>{id}</Text>,
-                      },
-                      {
-                        title: "Email",
-                        dataIndex: "email",
-                        key: "email",
-                      },
-                      {
-                        title: "Type",
-                        dataIndex: "type",
-                        key: "type",
-                        render: (type: string) => (
-                          <Tag color={type === "export" ? "blue" : "red"}>
-                            {type.toUpperCase()}
-                          </Tag>
-                        ),
-                      },
-                      {
-                        title: "Status",
-                        dataIndex: "status",
-                        key: "status",
-                        render: (status: string) => (
-                          <Tag
-                            color={
-                              status === "completed"
-                                ? "success"
-                                : status === "processing"
-                                  ? "processing"
-                                  : "warning"
-                            }
-                          >
-                            {status.toUpperCase()}
-                          </Tag>
-                        ),
-                      },
-                      {
-                        title: "Requested",
-                        dataIndex: "requestedAt",
-                        key: "requestedAt",
-                        render: (date: string) => formatDate(date),
-                      },
-                      {
-                        title: "Action",
-                        key: "action",
-                        render: (_: unknown, record: { id: string; type: string; status: string }) => {
-                          if (record.status === "completed") return null;
-                          return record.type === "export" ? (
-                            <Button
-                              size="small"
-                              icon={<DownloadOutlined />}
-                              onClick={() => handleExport(record.id)}
-                            >
-                              Export
-                            </Button>
-                          ) : (
-                            <Popconfirm
-                              title="Process deletion request? This is irreversible."
-                              onConfirm={() =>
-                                handleProcessDeletion(record.id)
-                              }
-                            >
-                              <Button size="small" danger>
-                                Process
-                              </Button>
-                            </Popconfirm>
-                          );
-                        },
-                      },
-                    ]}
+                  <Title level={5}>Compliance Status</Title>
+                  <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                    <Col xs={24} sm={8}>
+                      <Card size="small" bordered>
+                        <Statistic
+                          title="Users With PII (Email)"
+                          value={summary?.usersWithEmail ?? 0}
+                          valueStyle={{ color: BRAND_COLORS.violet }}
+                        />
+                      </Card>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Card size="small" bordered>
+                        <Statistic
+                          title="Users Without Email"
+                          value={summary?.usersWithoutEmail ?? 0}
+                        />
+                      </Card>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Card size="small" bordered>
+                        <Statistic
+                          title="Data Retention (days)"
+                          value={summary?.dataRetentionDays ?? 365}
+                        />
+                      </Card>
+                    </Col>
+                  </Row>
+                  <Alert
+                    message="Data Subject Requests"
+                    description="Data export and deletion requests can be processed via the User Management page. Use 'Delete User' for DPDP deletion requests (cascades all user data)."
+                    type="info"
+                    showIcon
+                    style={{ marginTop: 16 }}
                   />
                 </Card>
               </div>
@@ -385,8 +339,21 @@ export const CompliancePage: React.FC = () => {
                 <Title level={5} style={{ marginBottom: 16 }}>
                   Consent Management
                 </Title>
+                <Alert
+                  message="Consent is managed via Logto OIDC"
+                  description="Users consent to Terms of Service and Privacy Policy during Logto signup. Additional consents (marketing, notifications) are managed in the app's notification preferences."
+                  type="info"
+                  showIcon
+                  style={{ marginBottom: 16 }}
+                />
                 <Table
-                  dataSource={CONSENT_RECORDS}
+                  dataSource={[
+                    { type: "Terms of Service", status: "Collected at signup", required: true },
+                    { type: "Privacy Policy", status: "Collected at signup", required: true },
+                    { type: "Push Notifications", status: "In-app opt-in", required: false },
+                    { type: "WhatsApp Messages", status: "Channel verification", required: false },
+                    { type: "Email Notifications", status: "Channel verification", required: false },
+                  ]}
                   rowKey="type"
                   size="middle"
                   pagination={false}
@@ -410,23 +377,10 @@ export const CompliancePage: React.FC = () => {
                         ),
                     },
                     {
-                      title: "Users Consented",
-                      dataIndex: "users",
-                      key: "users",
-                      width: 140,
-                      render: (users: number) => users.toLocaleString(),
-                    },
-                    {
-                      title: "Collection Status",
-                      dataIndex: "collected",
-                      key: "collected",
-                      width: 140,
-                      render: (collected: boolean) =>
-                        collected ? (
-                          <Tag color="success">Active</Tag>
-                        ) : (
-                          <Tag color="error">Not Collected</Tag>
-                        ),
+                      title: "Collection Method",
+                      dataIndex: "status",
+                      key: "status",
+                      render: (status: string) => <Tag color="success">{status}</Tag>,
                     },
                   ]}
                 />

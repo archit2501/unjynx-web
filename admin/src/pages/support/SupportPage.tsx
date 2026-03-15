@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   Typography,
   Card,
@@ -8,15 +8,14 @@ import {
   Col,
   Descriptions,
   Tag,
-  Progress,
   Space,
   Avatar,
   message,
   Empty,
-  Divider,
   Alert,
-  List,
   Popconfirm,
+  Statistic,
+  Spin,
 } from "antd";
 import {
   SearchOutlined,
@@ -28,30 +27,44 @@ import {
   WarningOutlined,
   CloseCircleOutlined,
 } from "@ant-design/icons";
-import { useCustom } from "@refinedev/core";
-import { formatDateTime } from "../../utils/formatters";
+import { formatDateTime, formatNumber } from "../../utils/formatters";
 import { API_BASE_URL, API_ADMIN_PREFIX, BRAND_COLORS } from "../../utils/constants";
-import type { UserRecord, AccountHealth } from "../../types";
+import { getAccessToken } from "../../providers/auth-provider";
 
 const { Title, Text } = Typography;
 
-// Sample account health data
-const SAMPLE_HEALTH: AccountHealth = {
-  userId: "user-123",
-  score: 78,
-  syncStatus: "ok",
-  lastLogin: "2026-03-11T08:30:00Z",
-  openTickets: 1,
-  failedNotifications: 3,
-};
+interface UserRecord {
+  id: string;
+  name: string | null;
+  email: string | null;
+  avatarUrl: string | null;
+  adminRole: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface AccountHealth {
+  userId: string;
+  email: string | null;
+  name: string | null;
+  createdAt: string;
+  lastActive: string;
+  totalTasks: number;
+  completedTasks: number;
+  subscriptionPlan: string | null;
+  subscriptionStatus: string | null;
+  totalNotifications: number;
+  failedNotifications: number;
+}
 
 export const SupportPage: React.FC = () => {
   const [searchValue, setSearchValue] = useState("");
   const [searchedUser, setSearchedUser] = useState<UserRecord | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [health, setHealth] = useState<AccountHealth | null>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
 
-  const handleSearch = async () => {
+  const handleSearch = useCallback(async () => {
     if (!searchValue.trim()) {
       message.warning("Enter an email, name, or user ID");
       return;
@@ -59,19 +72,37 @@ export const SupportPage: React.FC = () => {
 
     setIsSearching(true);
     try {
+      const token = getAccessToken();
       const response = await fetch(
         `${API_BASE_URL}${API_ADMIN_PREFIX}/users?search=${encodeURIComponent(searchValue)}&limit=1`,
         {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("unjynx_admin_token")}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         },
       );
       const json = await response.json();
 
       if (json.success && json.data?.length > 0) {
-        setSearchedUser(json.data[0]);
-        setHealth(SAMPLE_HEALTH); // Replace with real health check
+        const user = json.data[0];
+        setSearchedUser(user);
+
+        // Fetch real account health
+        setHealthLoading(true);
+        try {
+          const healthRes = await fetch(
+            `${API_BASE_URL}${API_ADMIN_PREFIX}/support/account-health/${user.id}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          const healthJson = await healthRes.json();
+          if (healthJson.success && healthJson.data) {
+            setHealth(healthJson.data);
+          }
+        } catch {
+          // health fetch failed, continue with user data
+        } finally {
+          setHealthLoading(false);
+        }
       } else {
         setSearchedUser(null);
         setHealth(null);
@@ -82,33 +113,18 @@ export const SupportPage: React.FC = () => {
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [searchValue]);
 
-  const handleForceSync = () => {
-    message.success("Force sync triggered for user");
-  };
+  const handleResetPassword = useCallback(async () => {
+    if (!searchedUser) return;
+    // Navigate to user detail for password reset
+    message.info("Use the User Management page to reset passwords via Logto");
+  }, [searchedUser]);
 
-  const handleResendVerification = () => {
-    message.success("Verification email resent");
-  };
-
-  const handleResetPassword = () => {
-    message.success("Password reset email sent");
-  };
-
-  const healthScoreColor = (score: number): string => {
-    if (score >= 80) return BRAND_COLORS.success;
-    if (score >= 50) return BRAND_COLORS.warning;
-    return BRAND_COLORS.error;
-  };
-
-  const syncStatusIcon = (status: string): React.ReactNode => {
-    if (status === "ok")
-      return <CheckCircleOutlined style={{ color: BRAND_COLORS.success }} />;
-    if (status === "behind")
-      return <WarningOutlined style={{ color: BRAND_COLORS.warning }} />;
-    return <CloseCircleOutlined style={{ color: BRAND_COLORS.error }} />;
-  };
+  const completionRate =
+    health && health.totalTasks > 0
+      ? Math.round((health.completedTasks / health.totalTasks) * 100)
+      : 0;
 
   return (
     <div>
@@ -162,7 +178,7 @@ export const SupportPage: React.FC = () => {
                   style={{ backgroundColor: BRAND_COLORS.violet }}
                 />
                 <Title level={4} style={{ margin: 0 }}>
-                  {searchedUser.name}
+                  {searchedUser.name ?? "Unnamed"}
                 </Title>
                 <Text type="secondary">{searchedUser.email}</Text>
               </Space>
@@ -173,14 +189,9 @@ export const SupportPage: React.FC = () => {
                     {searchedUser.id}
                   </Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Plan">
+                <Descriptions.Item label="Role">
                   <Tag color="blue">
-                    {(searchedUser.plan ?? "free").toUpperCase()}
-                  </Tag>
-                </Descriptions.Item>
-                <Descriptions.Item label="Status">
-                  <Tag color={searchedUser.isBanned ? "error" : "success"}>
-                    {searchedUser.isBanned ? "BANNED" : "ACTIVE"}
+                    {(searchedUser.adminRole ?? "user").toUpperCase()}
                   </Tag>
                 </Descriptions.Item>
                 <Descriptions.Item label="Signed Up">
@@ -195,58 +206,70 @@ export const SupportPage: React.FC = () => {
 
           {/* Account Health & Actions */}
           <Col xs={24} lg={12}>
-            {health && (
+            {healthLoading ? (
+              <Card bordered={false} style={{ textAlign: "center", padding: 40 }}>
+                <Spin />
+              </Card>
+            ) : health ? (
               <Card bordered={false} style={{ marginBottom: 16 }}>
                 <Title level={5}>Account Health</Title>
-                <Row gutter={16} align="middle">
-                  <Col>
-                    <Progress
-                      type="circle"
-                      percent={health.score}
-                      size={80}
-                      strokeColor={healthScoreColor(health.score)}
+                <Row gutter={[16, 16]}>
+                  <Col xs={12}>
+                    <Statistic
+                      title="Total Tasks"
+                      value={health.totalTasks}
                     />
                   </Col>
-                  <Col flex="auto">
-                    <Space direction="vertical" size={4}>
-                      <Space>
-                        {syncStatusIcon(health.syncStatus)}
-                        <Text>
-                          Sync: {health.syncStatus.toUpperCase()}
-                        </Text>
-                      </Space>
-                      <Text type="secondary">
-                        Open Tickets: {health.openTickets}
-                      </Text>
-                      <Text type="secondary">
-                        Failed Notifications: {health.failedNotifications}
-                      </Text>
-                      <Text type="secondary">
-                        Last Login: {formatDateTime(health.lastLogin)}
-                      </Text>
-                    </Space>
+                  <Col xs={12}>
+                    <Statistic
+                      title="Completed"
+                      value={health.completedTasks}
+                      suffix={`(${completionRate}%)`}
+                      valueStyle={{ color: BRAND_COLORS.success }}
+                    />
+                  </Col>
+                  <Col xs={12}>
+                    <Statistic
+                      title="Subscription"
+                      value={(health.subscriptionPlan ?? "free").toUpperCase()}
+                      valueStyle={{ fontSize: 16 }}
+                    />
+                  </Col>
+                  <Col xs={12}>
+                    <Statistic
+                      title="Sub Status"
+                      value={(health.subscriptionStatus ?? "none").toUpperCase()}
+                      valueStyle={{
+                        fontSize: 16,
+                        color:
+                          health.subscriptionStatus === "active"
+                            ? BRAND_COLORS.success
+                            : BRAND_COLORS.warning,
+                      }}
+                    />
+                  </Col>
+                  <Col xs={12}>
+                    <Statistic
+                      title="Notifications"
+                      value={health.totalNotifications}
+                    />
+                  </Col>
+                  <Col xs={12}>
+                    <Statistic
+                      title="Failed Notifs"
+                      value={health.failedNotifications}
+                      valueStyle={{
+                        color: health.failedNotifications > 0 ? BRAND_COLORS.error : undefined,
+                      }}
+                    />
                   </Col>
                 </Row>
               </Card>
-            )}
+            ) : null}
 
             <Card bordered={false}>
               <Title level={5}>Quick Actions</Title>
               <Space direction="vertical" style={{ width: "100%" }}>
-                <Button
-                  icon={<SyncOutlined />}
-                  block
-                  onClick={handleForceSync}
-                >
-                  Force Sync
-                </Button>
-                <Button
-                  icon={<MailOutlined />}
-                  block
-                  onClick={handleResendVerification}
-                >
-                  Resend Verification Email
-                </Button>
                 <Popconfirm
                   title="Send password reset email?"
                   onConfirm={handleResetPassword}
@@ -258,17 +281,13 @@ export const SupportPage: React.FC = () => {
               </Space>
             </Card>
 
-            <Card
-              bordered={false}
-              style={{ marginTop: 16 }}
-            >
-              <Title level={5}>Ticket History</Title>
-              <Alert
-                message="Integration Placeholder"
-                description="Ticket system integration will be added in a future release."
-                type="info"
-                showIcon
-              />
+            <Card bordered={false} style={{ marginTop: 16 }}>
+              <Title level={5}>Last Active</Title>
+              <Text>
+                {health
+                  ? formatDateTime(health.lastActive)
+                  : formatDateTime(searchedUser.updatedAt)}
+              </Text>
             </Card>
           </Col>
         </Row>

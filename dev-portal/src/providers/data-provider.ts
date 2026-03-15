@@ -6,7 +6,7 @@ import type { DataProvider } from "@refinedev/core";
 import { API_BASE_URL, API_PREFIX } from "@/utils/constants";
 import { userManager } from "./auth-provider";
 
-const apiUrl = `${API_BASE_URL}${API_PREFIX}`;
+export const apiUrl = `${API_BASE_URL}${API_PREFIX}`;
 
 const getAuthHeaders = async (): Promise<Record<string, string>> => {
   try {
@@ -20,7 +20,7 @@ const getAuthHeaders = async (): Promise<Record<string, string>> => {
   return {};
 };
 
-const fetchWithAuth = async (
+export const fetchWithAuth = async (
   url: string,
   options: RequestInit = {}
 ): Promise<Response> => {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Typography,
   Row,
@@ -6,8 +6,7 @@ import {
   Card,
   Segmented,
   Table,
-  Statistic,
-  Space,
+  Spin,
 } from "antd";
 import {
   UserOutlined,
@@ -21,75 +20,121 @@ import { TrendLine } from "../../components/charts/TrendLine";
 import { StackedBar } from "../../components/charts/StackedBar";
 import { DonutChart } from "../../components/charts/DonutChart";
 import { formatNumber, formatCurrency, formatPercentage } from "../../utils/formatters";
-import { API_BASE_URL, API_ADMIN_PREFIX, BRAND_COLORS } from "../../utils/constants";
+import { API_BASE_URL, API_ADMIN_PREFIX } from "../../utils/constants";
+import type { AnalyticsOverview } from "../../types";
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 type AnalyticsTab = "growth" | "engagement" | "revenue" | "cohort";
 
-// Sample data
-const SIGNUP_TREND = [
-  { date: "Week 1", signups: 45, organic: 32, referral: 13 },
-  { date: "Week 2", signups: 62, organic: 41, referral: 21 },
-  { date: "Week 3", signups: 58, organic: 38, referral: 20 },
-  { date: "Week 4", signups: 73, organic: 50, referral: 23 },
-  { date: "Week 5", signups: 89, organic: 61, referral: 28 },
-  { date: "Week 6", signups: 95, organic: 65, referral: 30 },
-];
+interface TrendPoint {
+  date: string;
+  count: number;
+}
 
-const RETENTION_DATA = [
-  { date: "Day 1", rate: 100 },
-  { date: "Day 3", rate: 72 },
-  { date: "Day 7", rate: 58 },
-  { date: "Day 14", rate: 45 },
-  { date: "Day 30", rate: 35 },
-  { date: "Day 60", rate: 28 },
-  { date: "Day 90", rate: 22 },
-];
+interface TaskActivityPoint {
+  date: string;
+  created: number;
+  completed: number;
+}
 
-const FEATURE_ADOPTION = [
-  { name: "Task Creation", value: 95 },
-  { name: "Reminders", value: 78 },
-  { name: "Calendar", value: 62 },
-  { name: "Pomodoro", value: 45 },
-  { name: "Ghost Mode", value: 38 },
-  { name: "Content Feed", value: 55 },
-];
+interface RevenuePoint {
+  date: string;
+  amount: number;
+  currency: string;
+}
 
-const REVENUE_TREND = [
-  { date: "Jan", mrr: 2800, arr: 33600 },
-  { date: "Feb", mrr: 3400, arr: 40800 },
-  { date: "Mar", mrr: 4100, arr: 49200 },
-  { date: "Apr", mrr: 5200, arr: 62400 },
-  { date: "May", mrr: 6500, arr: 78000 },
-  { date: "Jun", mrr: 8500, arr: 102000 },
-];
+interface PlanDist {
+  plan: string;
+  count: number;
+}
 
-const COHORT_DATA = [
-  { cohort: "Jan 2026", month0: "100%", month1: "68%", month2: "52%", month3: "41%", month4: "35%", month5: "30%" },
-  { cohort: "Feb 2026", month0: "100%", month1: "72%", month2: "55%", month3: "44%", month4: "38%", month5: "-" },
-  { cohort: "Mar 2026", month0: "100%", month1: "70%", month2: "53%", month3: "42%", month4: "-", month5: "-" },
-];
-
-const TASK_ACTIVITY = [
-  { date: "Mon", created: 450, completed: 380 },
-  { date: "Tue", created: 520, completed: 440 },
-  { date: "Wed", created: 480, completed: 410 },
-  { date: "Thu", created: 560, completed: 475 },
-  { date: "Fri", created: 610, completed: 520 },
-  { date: "Sat", created: 280, completed: 240 },
-  { date: "Sun", created: 250, completed: 210 },
-];
-
-const CHURN_DATA = [
-  { name: "Free", value: 15 },
-  { name: "Pro", value: 5 },
-  { name: "Team", value: 3 },
-  { name: "Enterprise", value: 1 },
-];
+interface BillingStats {
+  totalSubscribers: number;
+  activeSubscribers: number;
+  mrr: number;
+  cancelledThisMonth: number;
+}
 
 export const AnalyticsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AnalyticsTab>("growth");
+
+  const { data: overviewData, isLoading: overviewLoading } = useCustom<AnalyticsOverview>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/analytics/overview`,
+    method: "get",
+  });
+
+  const { data: signupData } = useCustom<TrendPoint[]>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/analytics/signup-trend`,
+    method: "get",
+    config: { query: { days: 42 } },
+  });
+
+  const { data: dauData } = useCustom<TrendPoint[]>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/analytics/dau-trend`,
+    method: "get",
+    config: { query: { days: 30 } },
+  });
+
+  const { data: taskData } = useCustom<TaskActivityPoint[]>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/analytics/task-activity`,
+    method: "get",
+    config: { query: { days: 7 } },
+  });
+
+  const { data: revenueData } = useCustom<RevenuePoint[]>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/analytics/revenue-trend`,
+    method: "get",
+    config: { query: { days: 180 } },
+  });
+
+  const { data: planData } = useCustom<PlanDist[]>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/analytics/plan-distribution`,
+    method: "get",
+  });
+
+  const { data: billingData } = useCustom<BillingStats>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/billing/stats`,
+    method: "get",
+  });
+
+  const overview = overviewData?.data;
+  const billing = billingData?.data as unknown as BillingStats | undefined;
+
+  const signupChartData = useMemo(() => {
+    const raw = (signupData?.data as unknown as TrendPoint[]) ?? [];
+    return raw.map((p) => ({ date: p.date.slice(5), signups: p.count }));
+  }, [signupData]);
+
+  const dauChartData = useMemo(() => {
+    const raw = (dauData?.data as unknown as TrendPoint[]) ?? [];
+    return raw.map((p) => ({ date: p.date.slice(5), dau: p.count }));
+  }, [dauData]);
+
+  const taskChartData = useMemo(() => {
+    const raw = (taskData?.data as unknown as TaskActivityPoint[]) ?? [];
+    return raw.map((p) => ({ date: p.date.slice(5), created: p.created, completed: p.completed }));
+  }, [taskData]);
+
+  const revenueChartData = useMemo(() => {
+    const raw = (revenueData?.data as unknown as RevenuePoint[]) ?? [];
+    return raw.map((p) => ({ date: p.date.slice(5), revenue: p.amount / 100 }));
+  }, [revenueData]);
+
+  const planChartData = useMemo(() => {
+    const raw = (planData?.data as unknown as PlanDist[]) ?? [];
+    return raw.map((p) => ({ name: p.plan.charAt(0).toUpperCase() + p.plan.slice(1), value: p.count }));
+  }, [planData]);
+
+  const totalSignups = signupChartData.reduce((sum, p) => sum + p.signups, 0);
+
+  if (overviewLoading) {
+    return (
+      <div style={{ textAlign: "center", padding: 80 }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -115,26 +160,25 @@ export const AnalyticsPage: React.FC = () => {
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={24} sm={8}>
               <StatCard
-                title="Total Signups"
-                value={formatNumber(422)}
+                title="Total Users"
+                value={formatNumber(overview?.totalUsers ?? 0)}
                 prefix={<UserOutlined />}
-                trend={18.5}
-                trendLabel="this month"
+                trendLabel="registered"
               />
             </Col>
             <Col xs={24} sm={8}>
               <StatCard
-                title="DAU / WAU / MAU"
-                value="158 / 620 / 900"
+                title="Signups (42d)"
+                value={formatNumber(totalSignups)}
                 prefix={<RiseOutlined />}
+                trendLabel="last 6 weeks"
               />
             </Col>
             <Col xs={24} sm={8}>
               <StatCard
-                title="30-Day Retention"
-                value={formatPercentage(35)}
-                trend={2.1}
-                trendLabel="vs last month"
+                title="Active Subscriptions"
+                value={formatNumber(overview?.totalSubscriptions ?? 0)}
+                trendLabel="paid users"
               />
             </Col>
           </Row>
@@ -142,22 +186,16 @@ export const AnalyticsPage: React.FC = () => {
           <Row gutter={[16, 16]}>
             <Col xs={24} lg={12}>
               <TrendLine
-                title="Signup Trend"
-                data={SIGNUP_TREND}
-                dataKeys={[
-                  { key: "signups", label: "Total" },
-                  { key: "organic", label: "Organic" },
-                  { key: "referral", label: "Referral" },
-                ]}
+                title="Signup Trend (6 weeks)"
+                data={signupChartData}
+                dataKeys={[{ key: "signups", label: "Signups" }]}
               />
             </Col>
             <Col xs={24} lg={12}>
               <TrendLine
-                title="Retention Curve"
-                data={RETENTION_DATA}
-                dataKeys={[
-                  { key: "rate", label: "Retention %" },
-                ]}
+                title="DAU Trend (30d)"
+                data={dauChartData}
+                dataKeys={[{ key: "dau", label: "DAU" }]}
               />
             </Col>
           </Row>
@@ -169,26 +207,27 @@ export const AnalyticsPage: React.FC = () => {
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={24} sm={8}>
               <StatCard
-                title="Tasks Created Today"
-                value={formatNumber(610)}
-                trend={8.2}
-                trendLabel="vs yesterday"
+                title="DAU"
+                value={formatNumber(overview?.activeUsersToday ?? 0)}
+                trendLabel="today"
               />
             </Col>
             <Col xs={24} sm={8}>
               <StatCard
-                title="Completion Rate"
-                value={formatPercentage(84.5)}
-                trend={1.8}
-                trendLabel="vs last week"
+                title="MAU"
+                value={formatNumber(overview?.activeUsersMonth ?? 0)}
+                trendLabel="this month"
               />
             </Col>
             <Col xs={24} sm={8}>
               <StatCard
-                title="Avg Session Duration"
-                value="12m 34s"
-                trend={5.2}
-                trendLabel="vs last week"
+                title="DAU/MAU Ratio"
+                value={formatPercentage(
+                  overview?.activeUsersMonth
+                    ? (overview.activeUsersToday / overview.activeUsersMonth) * 100
+                    : 0,
+                )}
+                trendLabel="stickiness"
               />
             </Col>
           </Row>
@@ -196,8 +235,8 @@ export const AnalyticsPage: React.FC = () => {
           <Row gutter={[16, 16]}>
             <Col xs={24} lg={12}>
               <StackedBar
-                title="Tasks Created vs Completed"
-                data={TASK_ACTIVITY}
+                title="Tasks Created vs Completed (7d)"
+                data={taskChartData}
                 dataKeys={[
                   { key: "created", label: "Created" },
                   { key: "completed", label: "Completed" },
@@ -207,8 +246,8 @@ export const AnalyticsPage: React.FC = () => {
             </Col>
             <Col xs={24} lg={12}>
               <DonutChart
-                title="Feature Adoption"
-                data={FEATURE_ADOPTION}
+                title="Users by Plan"
+                data={planChartData}
               />
             </Col>
           </Row>
@@ -221,30 +260,30 @@ export const AnalyticsPage: React.FC = () => {
             <Col xs={24} sm={6}>
               <StatCard
                 title="MRR"
-                value={formatCurrency(8500)}
+                value={formatCurrency((billing?.mrr ?? 0) / 100)}
                 prefix={<DollarOutlined />}
-                trend={15.2}
+                trendLabel="this month"
               />
             </Col>
             <Col xs={24} sm={6}>
               <StatCard
-                title="ARR"
-                value={formatCurrency(102000)}
-                trend={22.8}
+                title="Total Subscribers"
+                value={formatNumber(billing?.totalSubscribers ?? 0)}
+                trendLabel="all time"
               />
             </Col>
             <Col xs={24} sm={6}>
               <StatCard
-                title="ARPU"
-                value={formatCurrency(9.44)}
-                trend={3.1}
+                title="Active"
+                value={formatNumber(billing?.activeSubscribers ?? 0)}
+                trendLabel="paying now"
               />
             </Col>
             <Col xs={24} sm={6}>
               <StatCard
-                title="LTV"
-                value={formatCurrency(85)}
-                trend={7.5}
+                title="Churn This Month"
+                value={formatNumber(billing?.cancelledThisMonth ?? 0)}
+                trendLabel="cancelled"
               />
             </Col>
           </Row>
@@ -252,18 +291,15 @@ export const AnalyticsPage: React.FC = () => {
           <Row gutter={[16, 16]}>
             <Col xs={24} lg={14}>
               <TrendLine
-                title="MRR / ARR Growth"
-                data={REVENUE_TREND}
-                dataKeys={[
-                  { key: "mrr", label: "MRR" },
-                  { key: "arr", label: "ARR" },
-                ]}
+                title="Revenue Trend (6 months)"
+                data={revenueChartData}
+                dataKeys={[{ key: "revenue", label: "Revenue ($)" }]}
               />
             </Col>
             <Col xs={24} lg={10}>
               <DonutChart
-                title="Churn by Plan (%)"
-                data={CHURN_DATA}
+                title="Subscribers by Plan"
+                data={planChartData}
               />
             </Col>
           </Row>
@@ -273,20 +309,20 @@ export const AnalyticsPage: React.FC = () => {
       {activeTab === "cohort" && (
         <Card bordered={false}>
           <Title level={5} style={{ marginBottom: 16 }}>
-            Monthly Cohort Retention
+            User Growth by Period
           </Title>
           <Table
-            dataSource={COHORT_DATA}
+            dataSource={signupChartData.map((p, i) => ({
+              key: i,
+              date: p.date,
+              signups: p.signups,
+              cumulative: signupChartData.slice(0, i + 1).reduce((s, x) => s + x.signups, 0),
+            }))}
             columns={[
-              { title: "Cohort", dataIndex: "cohort", key: "cohort" },
-              { title: "Month 0", dataIndex: "month0", key: "month0" },
-              { title: "Month 1", dataIndex: "month1", key: "month1" },
-              { title: "Month 2", dataIndex: "month2", key: "month2" },
-              { title: "Month 3", dataIndex: "month3", key: "month3" },
-              { title: "Month 4", dataIndex: "month4", key: "month4" },
-              { title: "Month 5", dataIndex: "month5", key: "month5" },
+              { title: "Date", dataIndex: "date", key: "date" },
+              { title: "Signups", dataIndex: "signups", key: "signups" },
+              { title: "Cumulative", dataIndex: "cumulative", key: "cumulative" },
             ]}
-            rowKey="cohort"
             pagination={false}
             size="middle"
           />

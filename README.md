@@ -1,199 +1,221 @@
-<div align="center">
+<p align="center">
+  <img src="https://img.shields.io/badge/Astro-4.x-FF5D01?style=for-the-badge&logo=astro&logoColor=white" alt="Astro" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
+  <img src="https://img.shields.io/badge/Refine-4.x-1890FF?style=for-the-badge" alt="Refine" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-3.4+-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind" />
+  <img src="https://img.shields.io/badge/Ant_Design-5.x-0170FE?style=for-the-badge&logo=antdesign&logoColor=white" alt="Ant Design" />
+  <img src="https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge" alt="License" />
+</p>
 
-# UNJYNX Web
+<h1 align="center">UNJYNX Web</h1>
+<h3 align="center">Landing Page + Admin Panel + Developer Portal</h3>
 
-### Landing Page + Admin Dashboard
-
-[![Astro](https://img.shields.io/badge/Astro-4.x-FF5D01?logo=astro&logoColor=white)](https://astro.build)
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
-[![Tailwind](https://img.shields.io/badge/Tailwind_CSS-3.x-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
-[![Ant Design](https://img.shields.io/badge/Ant_Design-5.x-0170FE?logo=antdesign&logoColor=white)](https://ant.design)
-
-**Two production-ready web apps powering the UNJYNX platform**
-
----
-
-</div>
-
-## Structure
-
-```
-unjynx-web/
-  landing/            # Marketing website (Astro + Tailwind)
-  admin/              # Admin dashboard (React + Refine + Ant Design)
-  .github/workflows/  # CI/CD pipelines
-```
+<p align="center">
+  Three web applications in one repository — a marketing landing page built with Astro, an admin dashboard for content and user management, and a developer portal for system monitoring.
+</p>
 
 ---
 
-## Landing Page ( /landing )
+## Applications
 
-The public-facing marketing website for UNJYNX.
+### 1. Landing Page (`/landing`)
 
-### Tech Stack
-- **Framework**: Astro 4.16 (static site generation)
-- **Styling**: Tailwind CSS
-- **Deployment**: Vercel (with security headers, CSP, asset caching)
-- **Testing**: Playwright E2E
+The public-facing marketing site for UNJYNX. Built with Astro for maximum performance (static HTML, zero JS by default).
 
-### Components
+**Live**: [unjynx.me](https://unjynx.me)
 
 | Component | Description |
 |-----------|-------------|
-| **Nav** | Responsive navigation with mobile hamburger menu |
-| **Hero** | Animated hero section with CTA |
-| **Features** | Feature showcase grid with icons |
-| **Channels** | 8 notification channels visual display |
-| **Pricing** | Plan comparison (Free / Pro / Team / Family) |
-| **Testimonials** | User testimonials carousel |
-| **FAQ** | Expandable FAQ accordion |
-| **Footer** | Links, social media, legal pages |
+| `Hero` | App tagline, CTA, and hero visual |
+| `Features` | Core feature showcase (6 features) |
+| `Channels` | Multi-channel reminder visualization |
+| `Pricing` | Plan comparison (Free, Pro, Team, Family) |
+| `Testimonials` | User testimonials carousel |
+| `FAQ` | Frequently asked questions accordion |
+| `Nav` | Responsive navigation bar |
+| `Footer` | Links, social, legal |
 
-### Pages
-- `/` Home (main landing page)
-- `/privacy` Privacy Policy
-- `/terms` Terms of Service
+**Pages**: Home (`/`), Privacy Policy (`/privacy`), Terms of Service (`/terms`)
 
-### Security Headers
+**Stack**: Astro 4.x, Tailwind CSS 3.4, `@astrojs/sitemap`, Playwright E2E tests
+
+---
+
+### 2. Admin Panel (`/admin`)
+
+Internal dashboard for managing UNJYNX platform operations. Built with React + Refine (headless admin framework) + Ant Design.
+
+**Live**: [unjynx.me/admin](https://unjynx.me/admin)
+
+| Page | Description |
+|------|-------------|
+| **Login** | Logto OIDC authentication |
+| **Dashboard** | Key metrics, active users, task stats |
+| **Users** | User management, roles, bans |
+| **Content** | Daily content management (60+ categories) |
+| **Notifications** | Channel health, delivery stats, failures |
+| **Feature Flags** | Toggle features per tier/user |
+| **Analytics** | Usage analytics, retention, engagement |
+| **Support** | Support ticket management |
+| **Billing** | Subscription overview, revenue |
+| **Compliance** | DPDP Act tracking, data requests |
+
+**Stack**: React 19, Refine 4.x, Ant Design 5.x, Vite, TypeScript
+
+---
+
+### 3. Developer Portal (`/dev-portal`)
+
+Internal tool for engineering operations and system monitoring. Same tech stack as Admin panel.
+
+| Page | Description |
+|------|-------------|
+| **Login** | Logto OIDC authentication |
+| **System Health** | Service status, uptime, alerts |
+| **Database** | Schema browser, query stats, connections |
+| **API Management** | API key management, rate limits |
+| **Deployment** | Deployment history, rollback |
+| **Notifications** | Channel provider status, queue depth |
+| **AI Models** | Model usage, costs, latency |
+| **Channel Providers** | WhatsApp/Telegram/SMS provider health |
+| **Data Pipeline** | Sync status, job queue monitoring |
+
+**Stack**: React 19, Refine 4.x, Ant Design 5.x, Vite, TypeScript
+
+---
+
+## Project Structure
+
 ```
-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'
-Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
-X-Frame-Options: DENY
-X-Content-Type-Options: nosniff
+unjynx-web/
+├── landing/                 # Astro marketing site
+│   ├── src/
+│   │   ├── components/      # 8 Astro components
+│   │   └── pages/           # 3 pages (index, privacy, terms)
+│   ├── public/              # Static assets
+│   ├── tests/               # Playwright E2E tests
+│   ├── astro.config.mjs
+│   ├── tailwind.config.mjs
+│   └── vercel.json
+├── admin/                   # React admin dashboard
+│   ├── src/
+│   │   └── pages/           # 10 page directories
+│   ├── index.html
+│   └── vite.config.ts
+├── dev-portal/              # React developer portal
+│   ├── src/
+│   │   └── pages/           # 10 page directories
+│   ├── index.html
+│   └── vite.config.ts
+└── CNAME                    # GitHub Pages custom domain
 ```
 
-### Run Locally
+---
+
+## Tech Stack
+
+| App | Framework | UI | Build | Hosting |
+|-----|-----------|----|----|---------|
+| **Landing** | Astro 4.x | Tailwind CSS 3.4 | Astro CLI | GitHub Pages |
+| **Admin** | React 19 + Refine 4.x | Ant Design 5.x | Vite | GitHub Pages |
+| **Dev Portal** | React 19 + Refine 4.x | Ant Design 5.x | Vite | GitHub Pages |
+
+### Shared Dependencies
+
+- **Authentication**: Logto OIDC (shared with backend)
+- **API Client**: Refine simple-rest data provider → `api.unjynx.me`
+- **TypeScript**: 5.x across all apps
+- **Testing**: Playwright (landing), Vitest (admin, dev-portal)
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 20+ and pnpm 10+
+- Backend API running (for admin/dev-portal)
+
+### Landing Page
 
 ```bash
 cd landing
 pnpm install
-pnpm dev      # http://localhost:4321
-pnpm build    # generates dist/
+pnpm dev        # http://localhost:4321
+pnpm build      # Static output in dist/
 ```
 
----
-
-## Admin Panel ( /admin )
-
-Internal dashboard for managing the UNJYNX platform. Protected behind OIDC admin login.
-
-### Tech Stack
-- **Framework**: React 19 + TypeScript
-- **UI Library**: Refine 4.x + Ant Design 5.x
-- **Charts**: Recharts
-- **Auth**: OIDC via Logto (admin roles only)
-- **Build**: Vite
-- **Testing**: Vitest + React Testing Library
-
-### Pages (15)
-
-| Page | Description |
-|------|-------------|
-| **Login** | OIDC authentication gate |
-| **Dashboard** | KPI cards (Users, DAU, Revenue, Engagement) + trend charts |
-| **Users List** | Searchable user table with plan/status filters |
-| **User Detail** | Individual user profile, activity, subscription |
-| **Content List** | Daily content management with CRUD |
-| **Content Create** | Rich content editor with category assignment |
-| **Content Calendar** | Visual content scheduling calendar |
-| **Notifications** | Delivery metrics, channel health, queue depths |
-| **Failed Notifications** | Retry/debug failed deliveries |
-| **Feature Flags** | Toggle features per user/plan/percentage |
-| **Flag Detail** | Detailed flag configuration |
-| **Analytics** | DAU/MAU trends, retention, funnel analysis |
-| **Billing** | Revenue metrics, subscription overview |
-| **Compliance** | DPDP Act status, data requests, audit trail |
-| **Support** | User tickets and escalations |
-
-### Architecture
-
-```
-Admin Panel
-    |
-    +-- AuthProvider (Logto OIDC)
-    |   Only super_admin / dev_admin roles allowed
-    |
-    +-- DataProvider (Simple REST)
-    |   Connects to UNJYNX Backend API (/api/v1/admin/*)
-    |
-    +-- Pages
-        +-- Dashboard  -> GET /admin/stats, /admin/analytics
-        +-- Users      -> GET/PATCH /admin/users
-        +-- Content    -> CRUD /admin/content
-        +-- Flags      -> CRUD /admin/feature-flags
-```
-
-### Run Locally
+### Admin Panel
 
 ```bash
 cd admin
 pnpm install
-pnpm dev      # http://localhost:5173
+pnpm dev        # http://localhost:5173
+pnpm build      # Static output in dist/
 ```
 
-Environment variables:
-```
-VITE_API_URL=http://localhost:3000/api/v1
-VITE_LOGTO_ENDPOINT=http://localhost:3001
-VITE_LOGTO_APP_ID=your-admin-app-id
+### Developer Portal
+
+```bash
+cd dev-portal
+pnpm install
+pnpm dev        # http://localhost:5174
+pnpm build      # Static output in dist/
 ```
 
 ---
 
 ## Deployment
 
-### Vercel (Recommended)
+All three apps are deployed to **GitHub Pages** via the `gh-pages` branch.
 
-Both apps are configured for Vercel deployment:
+| App | URL | Path |
+|-----|-----|------|
+| Landing | `unjynx.me` | `/` |
+| Admin | `unjynx.me/admin/` | `/admin/` |
+| Dev Portal | `unjynx.me/dev-portal/` | (internal link) |
 
-```bash
-# Landing page
-cd landing && vercel --prod
+### Custom Domain
 
-# Admin panel
-cd admin && vercel --prod
-```
+DNS is managed via Cloudflare:
+- `unjynx.me` → GitHub Pages (CNAME)
+- SSL enforced via GitHub Pages settings
 
-### Environment Variables (Vercel)
-
-**Landing**: No env vars needed (static site).
-
-**Admin**:
-
-| Variable | Value |
-|----------|-------|
-| VITE_API_URL | https://api.unjynx.com/api/v1 |
-| VITE_LOGTO_ENDPOINT | https://auth.unjynx.com |
-| VITE_LOGTO_APP_ID | Your Logto admin app ID |
-
-## Connected Services
+### CI/CD
 
 ```
-                  +------------------+
-                  |   Cloudflare     |
-                  |   (CDN / DNS)    |
-                  +--------+---------+
-                           |
-            +--------------+--------------+
-            v              v              v
-   +------------+   +------------+   +------------+
-   |  Landing   |   |   Admin    |   |  Backend   |
-   |  (Vercel)  |   |  (Vercel)  |   | (Hetzner)  |
-   |            |   |            |   |            |
-   | unjynx.com |   |   admin.   |   |   api.     |
-   |            |   | unjynx.com |   | unjynx.com |
-   +------------+   +------+-----+   +------------+
-                           |               ^
-                           +---------------+
-                         REST API calls
+Push to main → GitHub Actions → Build all 3 apps → Deploy to gh-pages branch
 ```
 
 ---
 
-<div align="center">
+## Authentication Flow
 
-**Built with care by [METAminds](https://github.com/AndrousStark)**
+Both Admin and Dev Portal use **Logto OIDC** for authentication:
 
-*Break the satisfactory. Unjynx your productivity.*
+1. User visits `/admin/login` or `/dev-portal/login`
+2. Redirected to `auth.unjynx.me` (Logto)
+3. User authenticates (username/password, social, or MFA)
+4. Redirected back with authorization code
+5. Token exchange happens at `/callback`
+6. JWT stored in memory, used for API calls
 
-</div>
+**Admin credentials** are managed in Logto with role-based access:
+- `super_admin` — full access to both panels
+- `admin` — admin panel only
+- `developer` — dev portal only
+
+---
+
+## Related Repositories
+
+| Repository | Description |
+|-----------|-------------|
+| [unjynx-app](https://github.com/AndrousStark/unjynx-app) | Flutter cross-platform mobile app |
+| [unjynx-backend](https://github.com/AndrousStark/unjynx-backend) | Hono + Drizzle + PostgreSQL API server (private) |
+
+---
+
+<p align="center">
+  Built by <strong>METAminds</strong> — an AI agency firm
+</p>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   Typography,
   Card,
@@ -18,16 +18,16 @@ import {
   message,
   Popconfirm,
   Tabs,
-  Descriptions,
   Statistic,
+  Spin,
 } from "antd";
 import {
   PlusOutlined,
   DollarOutlined,
   DeleteOutlined,
   EditOutlined,
-  FileTextOutlined,
 } from "@ant-design/icons";
+import { useCustom } from "@refinedev/core";
 import { StatusBadge } from "../../components/common/StatusBadge";
 import {
   formatDate,
@@ -35,112 +35,46 @@ import {
   formatNumber,
   planColor,
 } from "../../utils/formatters";
-import { PLAN_OPTIONS, BRAND_COLORS } from "../../utils/constants";
-import type {
-  SubscriptionRecord,
-  CouponRecord,
-  PlanType,
-} from "../../types";
+import { API_BASE_URL, API_ADMIN_PREFIX, PLAN_OPTIONS, BRAND_COLORS } from "../../utils/constants";
+import { getAccessToken } from "../../providers/auth-provider";
+import type { PlanType } from "../../types";
 
 const { Title, Text } = Typography;
 
-// Sample data
-const SUBSCRIPTIONS: readonly SubscriptionRecord[] = [
-  {
-    id: "sub-001",
-    userId: "user-123",
-    userName: "Arjun Sharma",
-    plan: "pro",
-    status: "active",
-    currentPeriodEnd: "2026-04-10T00:00:00Z",
-    amount: 6.99,
-    currency: "USD",
-    createdAt: "2026-01-10T00:00:00Z",
-  },
-  {
-    id: "sub-002",
-    userId: "user-456",
-    userName: "Priya Patel",
-    plan: "team",
-    status: "active",
-    currentPeriodEnd: "2026-04-15T00:00:00Z",
-    amount: 8.99,
-    currency: "USD",
-    createdAt: "2026-02-15T00:00:00Z",
-  },
-  {
-    id: "sub-003",
-    userId: "user-789",
-    userName: "Rahul Verma",
-    plan: "pro",
-    status: "past_due",
-    currentPeriodEnd: "2026-03-01T00:00:00Z",
-    amount: 6.99,
-    currency: "USD",
-    createdAt: "2025-12-01T00:00:00Z",
-  },
-  {
-    id: "sub-004",
-    userId: "user-101",
-    userName: "Sneha Gupta",
-    plan: "enterprise",
-    status: "active",
-    currentPeriodEnd: "2026-06-01T00:00:00Z",
-    amount: 49.99,
-    currency: "USD",
-    createdAt: "2026-01-01T00:00:00Z",
-  },
-  {
-    id: "sub-005",
-    userId: "user-202",
-    userName: "Vikram Singh",
-    plan: "pro",
-    status: "cancelled",
-    currentPeriodEnd: "2026-03-20T00:00:00Z",
-    amount: 4.99,
-    currency: "USD",
-    createdAt: "2025-09-20T00:00:00Z",
-  },
-];
+interface Subscription {
+  id: string;
+  userId: string;
+  plan: string;
+  status: string;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+}
 
-const COUPONS: readonly CouponRecord[] = [
-  {
-    id: "coupon-001",
-    code: "LAUNCH50",
-    discountPercent: 50,
-    maxUses: 100,
-    usedCount: 45,
-    expiresAt: "2026-06-30T00:00:00Z",
-    isActive: true,
-    createdAt: "2026-01-01T00:00:00Z",
-  },
-  {
-    id: "coupon-002",
-    code: "BETA20",
-    discountPercent: 20,
-    maxUses: 500,
-    usedCount: 312,
-    expiresAt: "2026-12-31T00:00:00Z",
-    isActive: true,
-    createdAt: "2025-11-01T00:00:00Z",
-  },
-  {
-    id: "coupon-003",
-    code: "FRIEND10",
-    discountPercent: 10,
-    maxUses: 1000,
-    usedCount: 89,
-    expiresAt: "2027-01-01T00:00:00Z",
-    isActive: true,
-    createdAt: "2026-02-01T00:00:00Z",
-  },
-];
+interface CouponData {
+  id: string;
+  code: string;
+  discountPercent: number;
+  maxUses: number;
+  usedCount: number;
+  validUntil: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+interface BillingStats {
+  totalSubscribers: number;
+  activeSubscribers: number;
+  mrr: number;
+  cancelledThisMonth: number;
+}
 
 interface CouponFormValues {
-  readonly code: string;
-  readonly discountPercent: number;
-  readonly maxUses: number;
-  readonly expiresAt: string;
+  code: string;
+  discountPercent: number;
+  maxUses: number;
+  expiresAt?: { toISOString(): string };
 }
 
 export const BillingPage: React.FC = () => {
@@ -148,31 +82,133 @@ export const BillingPage: React.FC = () => {
   const [couponForm] = Form.useForm();
   const [planFilter, setPlanFilter] = useState<string | undefined>();
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
+  const [subPage, setSubPage] = useState(1);
 
-  const handleCreateCoupon = (values: CouponFormValues) => {
-    message.success(`Coupon ${values.code} created`);
-    setCouponModalOpen(false);
-    couponForm.resetFields();
-  };
+  const { data: statsData, isLoading: statsLoading } = useCustom<BillingStats>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/billing/stats`,
+    method: "get",
+  });
 
-  const handleRefund = (subId: string) => {
-    message.success(`Refund initiated for ${subId}`);
-  };
+  const { data: subsData, isLoading: subsLoading } = useCustom<Subscription[]>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/billing/subscriptions`,
+    method: "get",
+    config: {
+      query: {
+        page: subPage,
+        limit: 20,
+        ...(planFilter ? { plan: planFilter } : {}),
+        ...(statusFilter ? { status: statusFilter } : {}),
+      },
+    },
+  });
+
+  const { data: couponsData, refetch: refetchCoupons } = useCustom<CouponData[]>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/billing/coupons`,
+    method: "get",
+  });
+
+  const stats = statsData?.data as unknown as BillingStats | undefined;
+  const subs = (subsData?.data as unknown as Subscription[]) ?? [];
+  const subTotal = (subsData as unknown as { data?: { meta?: { total?: number } } })?.data?.meta?.total ?? subs.length;
+  const couponsList = (couponsData?.data as unknown as CouponData[]) ?? [];
+
+  const handleCreateCoupon = useCallback(
+    async (values: CouponFormValues) => {
+      try {
+        const token = getAccessToken();
+        const res = await fetch(
+          `${API_BASE_URL}${API_ADMIN_PREFIX}/billing/coupons`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              code: values.code,
+              discountPercent: values.discountPercent,
+              maxUses: values.maxUses,
+              validUntil: values.expiresAt?.toISOString(),
+            }),
+          },
+        );
+
+        if (res.ok) {
+          message.success(`Coupon ${values.code} created`);
+          setCouponModalOpen(false);
+          couponForm.resetFields();
+          refetchCoupons();
+        } else {
+          const body = await res.json().catch(() => ({}));
+          message.error(body.error ?? "Failed to create coupon");
+        }
+      } catch {
+        message.error("Network error");
+      }
+    },
+    [couponForm, refetchCoupons],
+  );
+
+  const handleDeleteCoupon = useCallback(
+    async (id: string) => {
+      try {
+        const token = getAccessToken();
+        const res = await fetch(
+          `${API_BASE_URL}${API_ADMIN_PREFIX}/billing/coupons/${id}`,
+          {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+
+        if (res.ok) {
+          message.success("Coupon deleted");
+          refetchCoupons();
+        } else {
+          message.error("Failed to delete coupon");
+        }
+      } catch {
+        message.error("Network error");
+      }
+    },
+    [refetchCoupons],
+  );
+
+  const handleToggleCoupon = useCallback(
+    async (id: string, isActive: boolean) => {
+      try {
+        const token = getAccessToken();
+        const res = await fetch(
+          `${API_BASE_URL}${API_ADMIN_PREFIX}/billing/coupons/${id}`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ isActive }),
+          },
+        );
+
+        if (res.ok) {
+          message.success(isActive ? "Coupon activated" : "Coupon deactivated");
+          refetchCoupons();
+        } else {
+          message.error("Failed to update coupon");
+        }
+      } catch {
+        message.error("Network error");
+      }
+    },
+    [refetchCoupons],
+  );
 
   const subscriptionColumns = [
     {
-      title: "User",
-      dataIndex: "userName",
-      key: "userName",
-      render: (name: string, record: SubscriptionRecord) => (
-        <div>
-          <Text strong>{name}</Text>
-          <br />
-          <Text type="secondary" style={{ fontSize: 11 }}>
-            {record.userId}
-          </Text>
-        </div>
-      ),
+      title: "User ID",
+      dataIndex: "userId",
+      key: "userId",
+      render: (id: string) => <Text code>{id.slice(0, 12)}...</Text>,
     },
     {
       title: "Plan",
@@ -191,19 +227,18 @@ export const BillingPage: React.FC = () => {
       render: (status: string) => <StatusBadge status={status} />,
     },
     {
-      title: "Amount",
-      dataIndex: "amount",
-      key: "amount",
-      width: 100,
-      render: (amount: number, record: SubscriptionRecord) =>
-        formatCurrency(amount, record.currency),
-    },
-    {
       title: "Period End",
       dataIndex: "currentPeriodEnd",
       key: "currentPeriodEnd",
       width: 120,
-      render: (date: string) => formatDate(date),
+      render: (date: string | null) => (date ? formatDate(date) : "-"),
+    },
+    {
+      title: "Cancelled",
+      dataIndex: "cancelledAt",
+      key: "cancelledAt",
+      width: 120,
+      render: (date: string | null) => (date ? formatDate(date) : "-"),
     },
     {
       title: "Created",
@@ -211,22 +246,6 @@ export const BillingPage: React.FC = () => {
       key: "createdAt",
       width: 120,
       render: (date: string) => formatDate(date),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      width: 100,
-      render: (_: unknown, record: SubscriptionRecord) => (
-        <Space>
-          <Button type="text" icon={<FileTextOutlined />} size="small" title="View Invoice" />
-          <Popconfirm
-            title="Process refund?"
-            onConfirm={() => handleRefund(record.id)}
-          >
-            <Button type="text" icon={<DollarOutlined />} danger size="small" title="Refund" />
-          </Popconfirm>
-        </Space>
-      ),
     },
   ];
 
@@ -248,7 +267,7 @@ export const BillingPage: React.FC = () => {
       title: "Usage",
       key: "usage",
       width: 120,
-      render: (_: unknown, record: CouponRecord) => (
+      render: (_: unknown, record: CouponData) => (
         <Text>
           {record.usedCount} / {record.maxUses}
         </Text>
@@ -256,38 +275,43 @@ export const BillingPage: React.FC = () => {
     },
     {
       title: "Expires",
-      dataIndex: "expiresAt",
-      key: "expiresAt",
+      dataIndex: "validUntil",
+      key: "validUntil",
       width: 120,
-      render: (date: string) => formatDate(date),
+      render: (date: string | null) => (date ? formatDate(date) : "Never"),
     },
     {
       title: "Active",
       dataIndex: "isActive",
       key: "isActive",
       width: 80,
-      render: (isActive: boolean) => (
-        <Switch checked={isActive} size="small" />
+      render: (isActive: boolean, record: CouponData) => (
+        <Switch
+          checked={isActive}
+          size="small"
+          onChange={(checked) => handleToggleCoupon(record.id, checked)}
+        />
       ),
     },
     {
       title: "Actions",
       key: "actions",
       width: 80,
-      render: (_: unknown, record: CouponRecord) => (
-        <Space>
-          <Button type="text" icon={<EditOutlined />} size="small" />
+      render: (_: unknown, record: CouponData) => (
+        <Popconfirm title="Delete coupon?" onConfirm={() => handleDeleteCoupon(record.id)}>
           <Button type="text" icon={<DeleteOutlined />} danger size="small" />
-        </Space>
+        </Popconfirm>
       ),
     },
   ];
 
-  const filteredSubs = SUBSCRIPTIONS.filter((sub) => {
-    if (planFilter && sub.plan !== planFilter) return false;
-    if (statusFilter && sub.status !== statusFilter) return false;
-    return true;
-  });
+  if (statsLoading) {
+    return (
+      <div style={{ textAlign: "center", padding: 80 }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -297,31 +321,40 @@ export const BillingPage: React.FC = () => {
 
       {/* Summary Stats */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={6}>
           <Card bordered={false}>
             <Statistic
               title="Active Subscriptions"
-              value={3}
+              value={stats?.activeSubscribers ?? 0}
               valueStyle={{ color: BRAND_COLORS.violet }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={6}>
           <Card bordered={false}>
             <Statistic
               title="MRR"
-              value={8500}
+              value={(stats?.mrr ?? 0) / 100}
               prefix="$"
+              precision={2}
               valueStyle={{ color: BRAND_COLORS.success }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={6}>
           <Card bordered={false}>
             <Statistic
-              title="Coupons Active"
-              value={3}
-              valueStyle={{ color: BRAND_COLORS.gold }}
+              title="Total Subscribers"
+              value={stats?.totalSubscribers ?? 0}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={6}>
+          <Card bordered={false}>
+            <Statistic
+              title="Churn (this month)"
+              value={stats?.cancelledThisMonth ?? 0}
+              valueStyle={{ color: stats?.cancelledThisMonth ? BRAND_COLORS.error : undefined }}
             />
           </Card>
         </Col>
@@ -343,7 +376,10 @@ export const BillingPage: React.FC = () => {
                         allowClear
                         style={{ width: "100%" }}
                         value={planFilter}
-                        onChange={setPlanFilter}
+                        onChange={(v) => {
+                          setPlanFilter(v);
+                          setSubPage(1);
+                        }}
                         options={PLAN_OPTIONS.map((p) => ({
                           value: p.value,
                           label: p.label,
@@ -356,12 +392,15 @@ export const BillingPage: React.FC = () => {
                         allowClear
                         style={{ width: "100%" }}
                         value={statusFilter}
-                        onChange={setStatusFilter}
+                        onChange={(v) => {
+                          setStatusFilter(v);
+                          setSubPage(1);
+                        }}
                         options={[
                           { value: "active", label: "Active" },
                           { value: "cancelled", label: "Cancelled" },
                           { value: "past_due", label: "Past Due" },
-                          { value: "trialing", label: "Trialing" },
+                          { value: "expired", label: "Expired" },
                         ]}
                       />
                     </Col>
@@ -370,12 +409,18 @@ export const BillingPage: React.FC = () => {
 
                 <Card bordered={false}>
                   <Table
-                    dataSource={filteredSubs as SubscriptionRecord[]}
+                    dataSource={subs}
                     columns={subscriptionColumns}
                     rowKey="id"
                     scroll={{ x: 800 }}
                     size="middle"
-                    pagination={{ pageSize: 20 }}
+                    loading={subsLoading}
+                    pagination={{
+                      current: subPage,
+                      pageSize: 20,
+                      total: subTotal,
+                      onChange: (p) => setSubPage(p),
+                    }}
                   />
                 </Card>
               </div>
@@ -383,13 +428,10 @@ export const BillingPage: React.FC = () => {
           },
           {
             key: "coupons",
-            label: "Coupons",
+            label: `Coupons (${couponsList.length})`,
             children: (
               <div>
-                <Row
-                  justify="end"
-                  style={{ marginBottom: 16 }}
-                >
+                <Row justify="end" style={{ marginBottom: 16 }}>
                   <Button
                     type="primary"
                     icon={<PlusOutlined />}
@@ -401,7 +443,7 @@ export const BillingPage: React.FC = () => {
 
                 <Card bordered={false}>
                   <Table
-                    dataSource={COUPONS as CouponRecord[]}
+                    dataSource={couponsList}
                     columns={couponColumns}
                     rowKey="id"
                     size="middle"
@@ -456,11 +498,7 @@ export const BillingPage: React.FC = () => {
             <InputNumber min={1} style={{ width: "100%" }} />
           </Form.Item>
 
-          <Form.Item
-            name="expiresAt"
-            label="Expires At"
-            rules={[{ required: true, message: "Expiration date is required" }]}
-          >
+          <Form.Item name="expiresAt" label="Expires At">
             <DatePicker style={{ width: "100%" }} />
           </Form.Item>
 

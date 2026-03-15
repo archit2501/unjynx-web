@@ -2,8 +2,8 @@
 // R1 - System Health Page
 // ============================================================
 
-import { useState, useEffect, useCallback } from "react";
-import { Row, Col, Typography, Space, Select, Timeline, Tag, Card, Spin } from "antd";
+import { useState, useMemo } from "react";
+import { Row, Col, Typography, Space, Select, Timeline, Tag, Card, Spin, Alert } from "antd";
 import {
   CloudServerOutlined,
   DatabaseOutlined,
@@ -13,58 +13,109 @@ import {
   InboxOutlined,
   RobotOutlined,
   WarningOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import { useCustom } from "@refinedev/core";
 import { ServiceCard } from "@/components/charts/ServiceCard";
 import { MetricPanel } from "@/components/charts/MetricPanel";
-import { TimeSeriesChart } from "@/components/charts/TimeSeriesChart";
 import { GrafanaEmbed } from "@/components/common/GrafanaEmbed";
 import type {
-  ServiceHealth,
+  ServiceStatus,
   AlertEvent,
-  ApiServerMetrics,
-  DatabaseMetrics,
-  CacheMetrics,
-  QueueMetrics,
-  AuthMetrics,
-  StorageMetrics,
-  AiMetrics,
 } from "@/types";
 import { REFRESH_INTERVALS, GRAFANA_DASHBOARDS, COLORS } from "@/utils/constants";
 import {
   formatPercent,
   formatDuration,
   formatRelativeTime,
+  formatBytes,
   getStatusColor,
 } from "@/utils/formatters";
 
-// --- Mock data generators ---
-const generateMockServices = (): ReadonlyArray<ServiceHealth> => [
-  { name: "API Server", status: "healthy", uptime: 99.98, lastCheck: new Date().toISOString(), metrics: { rps: 142, errorRate: 0.12, p50: 23, p95: 87, p99: 210 } },
-  { name: "Database", status: "healthy", uptime: 99.99, lastCheck: new Date().toISOString(), metrics: { connections: 24, queryTime: 8.3, replicationLag: 0.1, diskUsage: 42 } },
-  { name: "Cache (Valkey)", status: "healthy", uptime: 100, lastCheck: new Date().toISOString(), metrics: { memory: 128, hitRate: 97.2, keys: 15420, evictions: 3 } },
-  { name: "Queue (BullMQ)", status: "healthy", uptime: 99.95, lastCheck: new Date().toISOString(), metrics: { active: 12, waiting: 34, failed: 2, completed: 98421 } },
-  { name: "Auth (Logto)", status: "healthy", uptime: 99.97, lastCheck: new Date().toISOString(), metrics: { loginSuccess: 99.1, mfaAdoption: 34.2, sessions: 482 } },
-  { name: "Storage (MinIO)", status: "healthy", uptime: 99.99, lastCheck: new Date().toISOString(), metrics: { bucketSize: 12.4, uploadRate: 3.2, objects: 48210 } },
-  { name: "AI (Ollama)", status: "degraded", uptime: 98.5, lastCheck: new Date().toISOString(), metrics: { requestRate: 8.3, responseTime: 1240, tokens: 142000 } },
-];
+// --- Backend response types ---
 
-const generateMockAlerts = (): ReadonlyArray<AlertEvent> => [
-  { id: "1", severity: "critical", service: "AI (Ollama)", message: "Response time exceeded 2s threshold", timestamp: new Date(Date.now() - 300000).toISOString(), resolved: false },
-  { id: "2", severity: "warning", service: "Queue (BullMQ)", message: "2 failed jobs in notification queue", timestamp: new Date(Date.now() - 600000).toISOString(), resolved: false },
-  { id: "3", severity: "info", service: "Database", message: "Automatic vacuum completed on tasks table", timestamp: new Date(Date.now() - 1800000).toISOString(), resolved: true },
-  { id: "4", severity: "warning", service: "API Server", message: "P99 latency spike to 450ms", timestamp: new Date(Date.now() - 3600000).toISOString(), resolved: true },
-  { id: "5", severity: "critical", service: "Cache (Valkey)", message: "Memory usage at 85%", timestamp: new Date(Date.now() - 7200000).toISOString(), resolved: true },
-];
+interface BackendServiceHealth {
+  readonly name: string;
+  readonly status: "healthy" | "degraded" | "down";
+  readonly uptime: number; // milliseconds
+  readonly responseTimeMs: number;
+  readonly errorRate: number;
+  readonly details?: Record<string, unknown>;
+}
 
-const generateTimeSeriesData = () =>
-  Array.from({ length: 24 }, (_, i) => ({
-    time: `${String(i).padStart(2, "0")}:00`,
-    rps: Math.floor(100 + Math.random() * 80),
-    errors: Math.floor(Math.random() * 5),
-    p95: Math.floor(60 + Math.random() * 50),
-    queueDepth: Math.floor(20 + Math.random() * 40),
-  }));
+interface HealthResponse {
+  readonly services: ReadonlyArray<BackendServiceHealth>;
+  readonly overallStatus: "healthy" | "degraded" | "down";
+}
+
+// --- Name mapping from backend service names to display names ---
+
+const SERVICE_DISPLAY_NAMES: Record<string, string> = {
+  "api-server": "API Server",
+  postgresql: "Database",
+  "valkey-cache": "Cache (Valkey)",
+  "bullmq-queue": "Queue (BullMQ)",
+  "logto-auth": "Auth (Logto)",
+  "minio-storage": "Storage (MinIO)",
+  "ollama-ai": "AI (Ollama)",
+};
+
+// --- Helper: uptime score based on error rate (lower error = higher uptime) ---
+
+const uptimeFromErrorRate = (errorRate: number): number => {
+  // errorRate is a percentage (0-100); uptime = 100 - errorRate
+  return Math.max(0, Math.min(100, 100 - errorRate));
+};
+
+const uptimeMsToHours = (uptimeMs: number): string => {
+  const hours = uptimeMs / (1000 * 60 * 60);
+  if (hours < 1) {
+    const mins = uptimeMs / (1000 * 60);
+    return `${mins.toFixed(0)}m`;
+  }
+  if (hours < 24) {
+    return `${hours.toFixed(1)}h`;
+  }
+  const days = hours / 24;
+  return `${days.toFixed(1)}d`;
+};
+
+// --- Helper to find a service by its backend name ---
+
+const findService = (
+  services: ReadonlyArray<BackendServiceHealth>,
+  backendName: string
+): BackendServiceHealth | undefined =>
+  services.find((s) => s.name === backendName);
+
+// --- Helper to safely read a numeric detail ---
+
+const getDetail = (
+  service: BackendServiceHealth | undefined,
+  key: string
+): number | undefined => {
+  const val = service?.details?.[key];
+  return typeof val === "number" ? val : undefined;
+};
+
+// --- Derive alerts from services with non-healthy status ---
+
+const deriveAlerts = (
+  services: ReadonlyArray<BackendServiceHealth>
+): ReadonlyArray<AlertEvent> =>
+  services
+    .filter((s) => s.status !== "healthy")
+    .map((s, idx) => ({
+      id: `derived-${idx}`,
+      severity: (s.status === "down" ? "critical" : "warning") as "critical" | "warning",
+      service: SERVICE_DISPLAY_NAMES[s.name] ?? s.name,
+      message:
+        s.status === "down"
+          ? `${SERVICE_DISPLAY_NAMES[s.name] ?? s.name} is currently down (response time: ${formatDuration(s.responseTimeMs)})`
+          : `${SERVICE_DISPLAY_NAMES[s.name] ?? s.name} is degraded — error rate: ${formatPercent(s.errorRate)}, response time: ${formatDuration(s.responseTimeMs)}`,
+      timestamp: new Date().toISOString(),
+      resolved: false,
+    }));
 
 const severityColor: Record<string, string> = {
   critical: COLORS.critical,
@@ -74,52 +125,74 @@ const severityColor: Record<string, string> = {
 
 export const SystemHealthPage: React.FC = () => {
   const [refreshInterval, setRefreshInterval] = useState(REFRESH_INTERVALS.normal);
-  const [services, setServices] = useState<ReadonlyArray<ServiceHealth>>(generateMockServices);
-  const [alerts, setAlerts] = useState<ReadonlyArray<AlertEvent>>(generateMockAlerts);
-  const [chartData, setChartData] = useState(generateTimeSeriesData);
 
-  // Attempt to fetch real data, fall back to mock
-  const { isLoading } = useCustom<{
-    services?: ServiceHealth[];
-    alerts?: AlertEvent[];
-  }>({
-    url: "system-health/overview",
+  // Fetch real health data from backend
+  const { data, isLoading, isError } = useCustom<HealthResponse>({
+    url: "health",
     method: "get",
     queryOptions: {
-      retry: false,
       refetchInterval: refreshInterval,
-      enabled: false, // disable auto-fetch, use mock data for now
-      queryKey: ["system-health-overview"],
+      queryKey: ["system-health"],
     },
   });
 
-  const refreshMock = useCallback(() => {
-    setServices(generateMockServices());
-    setAlerts(generateMockAlerts());
-    setChartData(generateTimeSeriesData());
-  }, []);
+  const healthData = data?.data;
+  const services = useMemo(() => healthData?.services ?? [], [healthData]);
+  const overallStatus: ServiceStatus = (healthData?.overallStatus as ServiceStatus) ?? "unknown";
 
-  useEffect(() => {
-    const interval = setInterval(refreshMock, refreshInterval);
-    return () => clearInterval(interval);
-  }, [refreshInterval, refreshMock]);
+  // Derive alerts from services with non-healthy status
+  const alerts = useMemo(() => deriveAlerts(services), [services]);
 
-  const apiMetrics = services.find((s) => s.name === "API Server")?.metrics as unknown as ApiServerMetrics | undefined;
-  const dbMetrics = services.find((s) => s.name === "Database")?.metrics as unknown as DatabaseMetrics | undefined;
-  const cacheMetrics = services.find((s) => s.name === "Cache (Valkey)")?.metrics as unknown as CacheMetrics | undefined;
-  const queueMetrics = services.find((s) => s.name === "Queue (BullMQ)")?.metrics as unknown as QueueMetrics | undefined;
-  const authMetrics = services.find((s) => s.name === "Auth (Logto)")?.metrics as unknown as AuthMetrics | undefined;
-  const storageMetrics = services.find((s) => s.name === "Storage (MinIO)")?.metrics as unknown as StorageMetrics | undefined;
-  const aiMetrics = services.find((s) => s.name === "AI (Ollama)")?.metrics as unknown as AiMetrics | undefined;
+  // Look up each service by backend name
+  const apiService = findService(services, "api-server");
+  const dbService = findService(services, "postgresql");
+  const cacheService = findService(services, "valkey-cache");
+  const queueService = findService(services, "bullmq-queue");
+  const authService = findService(services, "logto-auth");
+  const storageService = findService(services, "minio-storage");
+  const aiService = findService(services, "ollama-ai");
+
+  // Compute overview metrics from real data
+  const overallUptimePercent = useMemo(() => {
+    if (services.length === 0) return undefined;
+    const avgPercent =
+      services.reduce((sum, s) => sum + uptimeFromErrorRate(s.errorRate), 0) /
+      services.length;
+    return Math.min(avgPercent, 100);
+  }, [services]);
+
+  const avgErrorRate = useMemo(() => {
+    if (services.length === 0) return undefined;
+    return (
+      services.reduce((sum, s) => sum + s.errorRate, 0) / services.length
+    );
+  }, [services]);
 
   return (
     <Spin spinning={isLoading} size="large">
       <Space direction="vertical" size={24} style={{ width: "100%" }}>
+        {/* Error banner */}
+        {isError && (
+          <Alert
+            type="error"
+            message="Failed to load system health data"
+            description="Could not connect to the health endpoint. Ensure the backend is running."
+            showIcon
+          />
+        )}
+
         {/* Page header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Typography.Title level={3} style={{ margin: 0, color: COLORS.white }}>
-            System Health
-          </Typography.Title>
+          <Space align="center">
+            <Typography.Title level={3} style={{ margin: 0, color: COLORS.white }}>
+              System Health
+            </Typography.Title>
+            {!isLoading && (
+              <Tag color={overallStatus === "healthy" ? "success" : overallStatus === "degraded" ? "warning" : overallStatus === "down" ? "error" : "default"}>
+                {overallStatus.toUpperCase()}
+              </Tag>
+            )}
+          </Space>
           <Space>
             <Typography.Text style={{ color: "#9CA3AF", fontSize: 12 }}>
               Refresh:
@@ -144,41 +217,36 @@ export const SystemHealthPage: React.FC = () => {
           <Col xs={24} sm={12} md={6}>
             <MetricPanel
               title="Overall Uptime"
-              value={99.97}
-              suffix="%"
+              value={overallUptimePercent != null ? Number(overallUptimePercent.toFixed(2)) : "--"}
+              suffix={overallUptimePercent != null ? "%" : undefined}
               precision={2}
-              trend={0.02}
-              trendLabel="vs last week"
-              progress={99.97}
+              progress={overallUptimePercent}
               thresholds={{ warning: 99, critical: 95, inverted: true }}
             />
           </Col>
           <Col xs={24} sm={12} md={6}>
             <MetricPanel
-              title="Total RPS"
-              value={apiMetrics?.rps ?? 142}
-              suffix="req/s"
-              trend={5.3}
-              trendLabel="vs yesterday"
+              title="API Latency"
+              value={apiService ? `${apiService.responseTimeMs}` : "--"}
+              suffix={apiService ? "ms" : undefined}
+              description={apiService ? "Average response time" : "No data"}
             />
           </Col>
           <Col xs={24} sm={12} md={6}>
             <MetricPanel
               title="Error Rate"
-              value={apiMetrics?.errorRate ?? 0.12}
-              suffix="%"
+              value={avgErrorRate != null ? Number(avgErrorRate.toFixed(2)) : "--"}
+              suffix={avgErrorRate != null ? "%" : undefined}
               precision={2}
-              trend={-0.05}
-              trendLabel="improving"
-              progress={apiMetrics?.errorRate ?? 0.12}
+              progress={avgErrorRate}
               thresholds={{ warning: 1, critical: 5 }}
             />
           </Col>
           <Col xs={24} sm={12} md={6}>
             <MetricPanel
               title="Active Alerts"
-              value={alerts.filter((a) => !a.resolved).length}
-              description="unresolved"
+              value={alerts.length}
+              description={alerts.length === 0 ? "all clear" : "unresolved"}
             />
           </Col>
         </Row>
@@ -211,122 +279,109 @@ export const SystemHealthPage: React.FC = () => {
           <Col xs={24} lg={12} xl={8}>
             <ServiceCard
               title="API Server"
-              status={services.find((s) => s.name === "API Server")?.status ?? "unknown"}
-              lastCheck={services.find((s) => s.name === "API Server")?.lastCheck}
+              status={apiService?.status ?? "unknown"}
               icon={<CloudServerOutlined style={{ color: COLORS.violet }} />}
               metrics={[
-                { label: "Uptime", value: formatPercent(apiMetrics?.uptime ?? 99.98) },
-                { label: "RPS", value: apiMetrics?.rps ?? 0 },
-                { label: "Error Rate", value: formatPercent(apiMetrics?.errorRate ?? 0) },
-                { label: "P50", value: formatDuration(apiMetrics?.p50 ?? 0) },
-                { label: "P95", value: formatDuration(apiMetrics?.p95 ?? 0) },
-                { label: "P99", value: formatDuration(apiMetrics?.p99 ?? 0) },
+                { label: "Uptime", value: apiService ? uptimeMsToHours(apiService.uptime) : "--" },
+                { label: "Response", value: apiService ? formatDuration(apiService.responseTimeMs) : "--" },
+                { label: "Error Rate", value: apiService ? formatPercent(apiService.errorRate) : "--" },
               ]}
             />
           </Col>
           <Col xs={24} lg={12} xl={8}>
             <ServiceCard
               title="Database (PostgreSQL)"
-              status={services.find((s) => s.name === "Database")?.status ?? "unknown"}
-              lastCheck={services.find((s) => s.name === "Database")?.lastCheck}
+              status={dbService?.status ?? "unknown"}
               icon={<DatabaseOutlined style={{ color: COLORS.violet }} />}
               metrics={[
-                { label: "Connections", value: dbMetrics?.activeConnections ?? 0 },
-                { label: "Avg Query", value: formatDuration(dbMetrics?.avgQueryTime ?? 0) },
-                { label: "Repl Lag", value: `${dbMetrics?.replicationLag ?? 0}ms` },
-                { label: "Disk Usage", value: formatPercent(dbMetrics?.diskUsagePercent ?? 0) },
+                { label: "Connections", value: getDetail(dbService, "activeConnections") ?? "--" },
+                { label: "Response", value: dbService ? formatDuration(dbService.responseTimeMs) : "--" },
+                { label: "DB Size", value: getDetail(dbService, "databaseSizeBytes") != null ? formatBytes(getDetail(dbService, "databaseSizeBytes")!) : "--" },
+                { label: "Uptime", value: dbService ? uptimeMsToHours(dbService.uptime) : "--" },
               ]}
             />
           </Col>
           <Col xs={24} lg={12} xl={8}>
             <ServiceCard
               title="Cache (Valkey)"
-              status={services.find((s) => s.name === "Cache (Valkey)")?.status ?? "unknown"}
-              lastCheck={services.find((s) => s.name === "Cache (Valkey)")?.lastCheck}
+              status={cacheService?.status ?? "unknown"}
               icon={<ThunderboltOutlined style={{ color: COLORS.gold }} />}
               metrics={[
-                { label: "Memory", value: `${cacheMetrics?.memoryUsedMB ?? 0}MB` },
-                { label: "Hit Rate", value: formatPercent(cacheMetrics?.hitRate ?? 0) },
-                { label: "Keys", value: cacheMetrics?.totalKeys ?? 0 },
+                { label: "Memory", value: getDetail(cacheService, "usedMemoryBytes") != null ? formatBytes(getDetail(cacheService, "usedMemoryBytes")!) : (getDetail(cacheService, "memoryUsedMB") != null ? `${getDetail(cacheService, "memoryUsedMB")}MB` : "--") },
+                { label: "Hit Rate", value: getDetail(cacheService, "hitRate") != null ? formatPercent(getDetail(cacheService, "hitRate")!) : "--" },
+                { label: "Keys", value: getDetail(cacheService, "totalKeys") ?? getDetail(cacheService, "connectedClients") ?? "--" },
+                { label: "Response", value: cacheService ? formatDuration(cacheService.responseTimeMs) : "--" },
               ]}
             />
           </Col>
           <Col xs={24} lg={12} xl={8}>
             <ServiceCard
               title="Queue (BullMQ)"
-              status={services.find((s) => s.name === "Queue (BullMQ)")?.status ?? "unknown"}
-              lastCheck={services.find((s) => s.name === "Queue (BullMQ)")?.lastCheck}
+              status={queueService?.status ?? "unknown"}
               icon={<UnorderedListOutlined style={{ color: COLORS.violet }} />}
               metrics={[
-                { label: "Active", value: queueMetrics?.active ?? 0 },
-                { label: "Waiting", value: queueMetrics?.waiting ?? 0 },
-                { label: "Failed", value: queueMetrics?.failed ?? 0 },
-                { label: "Completed", value: queueMetrics?.completed ?? 0 },
+                { label: "Active", value: getDetail(queueService, "active") ?? "--" },
+                { label: "Waiting", value: getDetail(queueService, "waiting") ?? "--" },
+                { label: "Failed", value: getDetail(queueService, "failed") ?? "--" },
+                { label: "Completed", value: getDetail(queueService, "completed") ?? "--" },
               ]}
             />
           </Col>
           <Col xs={24} lg={12} xl={8}>
             <ServiceCard
               title="Auth (Logto)"
-              status={services.find((s) => s.name === "Auth (Logto)")?.status ?? "unknown"}
-              lastCheck={services.find((s) => s.name === "Auth (Logto)")?.lastCheck}
+              status={authService?.status ?? "unknown"}
               icon={<SafetyCertificateOutlined style={{ color: COLORS.healthy }} />}
               metrics={[
-                { label: "Login Success", value: formatPercent(authMetrics?.loginSuccessRate ?? 0) },
-                { label: "MFA Adoption", value: formatPercent(authMetrics?.mfaAdoption ?? 0) },
-                { label: "Sessions", value: authMetrics?.activeSessions ?? 0 },
+                { label: "Response", value: authService ? formatDuration(authService.responseTimeMs) : "--" },
+                { label: "Error Rate", value: authService ? formatPercent(authService.errorRate) : "--" },
+                { label: "Uptime", value: authService ? uptimeMsToHours(authService.uptime) : "--" },
               ]}
             />
           </Col>
           <Col xs={24} lg={12} xl={8}>
             <ServiceCard
               title="Storage (MinIO)"
-              status={services.find((s) => s.name === "Storage (MinIO)")?.status ?? "unknown"}
-              lastCheck={services.find((s) => s.name === "Storage (MinIO)")?.lastCheck}
+              status={storageService?.status ?? "unknown"}
               icon={<InboxOutlined style={{ color: COLORS.violet }} />}
               metrics={[
-                { label: "Size", value: `${storageMetrics?.bucketSizeGB ?? 0}GB` },
-                { label: "Upload Rate", value: `${storageMetrics?.uploadRatePerMin ?? 0}/min` },
+                { label: "Buckets", value: getDetail(storageService, "buckets") ?? "--" },
+                { label: "Response", value: storageService ? formatDuration(storageService.responseTimeMs) : "--" },
+                { label: "Uptime", value: storageService ? uptimeMsToHours(storageService.uptime) : "--" },
               ]}
             />
           </Col>
           <Col xs={24} lg={12} xl={8}>
             <ServiceCard
               title="AI (Ollama)"
-              status={services.find((s) => s.name === "AI (Ollama)")?.status ?? "unknown"}
-              lastCheck={services.find((s) => s.name === "AI (Ollama)")?.lastCheck}
+              status={aiService?.status ?? "unknown"}
               icon={<RobotOutlined style={{ color: COLORS.gold }} />}
               metrics={[
-                { label: "Req Rate", value: `${aiMetrics?.requestRate ?? 0}/s` },
-                { label: "Resp Time", value: formatDuration(aiMetrics?.avgResponseTime ?? 0) },
-                { label: "Tokens", value: `${((aiMetrics?.tokenUsage ?? 0) / 1000).toFixed(0)}K` },
+                { label: "Response", value: aiService ? formatDuration(aiService.responseTimeMs) : "--" },
+                { label: "Error Rate", value: aiService ? formatPercent(aiService.errorRate) : "--" },
+                { label: "Uptime", value: aiService ? uptimeMsToHours(aiService.uptime) : "--" },
               ]}
             />
           </Col>
         </Row>
 
-        {/* Time series charts */}
+        {/* Time series placeholder — Grafana dashboards above provide real-time metrics */}
         <Row gutter={[16, 16]}>
-          <Col xs={24} lg={12}>
-            <TimeSeriesChart
-              title="Requests Per Second (24h)"
-              data={chartData}
-              series={[
-                { dataKey: "rps", name: "RPS", color: COLORS.violet },
-                { dataKey: "errors", name: "Errors", color: COLORS.critical },
-              ]}
-              yAxisLabel="Count"
-            />
-          </Col>
-          <Col xs={24} lg={12}>
-            <TimeSeriesChart
-              title="Queue Depth & P95 Latency (24h)"
-              data={chartData}
-              series={[
-                { dataKey: "queueDepth", name: "Queue Depth", color: COLORS.gold },
-                { dataKey: "p95", name: "P95 (ms)", color: COLORS.chartTertiary },
-              ]}
-            />
+          <Col xs={24}>
+            <Card
+              style={{ background: "#1A1528", border: "1px solid #2D2640", textAlign: "center" }}
+              styles={{ body: { padding: 32 } }}
+            >
+              <Space direction="vertical" size={8}>
+                <InfoCircleOutlined style={{ fontSize: 28, color: COLORS.violet }} />
+                <Typography.Text style={{ color: "#9CA3AF" }}>
+                  Connect Grafana for real-time time-series metrics (RPS, latency, queue depth).
+                </Typography.Text>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  Grafana panels are embedded above when available. Configure VITE_GRAFANA_URL in your environment.
+                </Typography.Text>
+              </Space>
+            </Card>
           </Col>
         </Row>
 
@@ -341,30 +396,36 @@ export const SystemHealthPage: React.FC = () => {
           style={{ background: "#1A1528", border: "1px solid #2D2640" }}
           styles={{ header: { borderBottom: "1px solid #2D2640" } }}
         >
-          <Timeline
-            items={alerts.map((alert) => ({
-              color: severityColor[alert.severity] ?? COLORS.unknown,
-              children: (
-                <div key={alert.id}>
-                  <Space>
-                    <Tag color={getStatusColor(alert.severity)}>{alert.severity.toUpperCase()}</Tag>
-                    <Typography.Text strong style={{ color: COLORS.white }}>
-                      {alert.service}
-                    </Typography.Text>
-                    {alert.resolved && <Tag color="success">Resolved</Tag>}
-                  </Space>
-                  <div>
-                    <Typography.Text style={{ color: "#D1D5DB" }}>
-                      {alert.message}
+          {alerts.length === 0 ? (
+            <Typography.Text style={{ color: "#9CA3AF" }}>
+              All services are healthy. No active alerts.
+            </Typography.Text>
+          ) : (
+            <Timeline
+              items={alerts.map((alert) => ({
+                color: severityColor[alert.severity] ?? COLORS.unknown,
+                children: (
+                  <div key={alert.id}>
+                    <Space>
+                      <Tag color={getStatusColor(alert.severity)}>{alert.severity.toUpperCase()}</Tag>
+                      <Typography.Text strong style={{ color: COLORS.white }}>
+                        {alert.service}
+                      </Typography.Text>
+                      {alert.resolved && <Tag color="success">Resolved</Tag>}
+                    </Space>
+                    <div>
+                      <Typography.Text style={{ color: "#D1D5DB" }}>
+                        {alert.message}
+                      </Typography.Text>
+                    </div>
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      {formatRelativeTime(alert.timestamp)}
                     </Typography.Text>
                   </div>
-                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    {formatRelativeTime(alert.timestamp)}
-                  </Typography.Text>
-                </div>
-              ),
-            }))}
-          />
+                ),
+              }))}
+            />
+          )}
         </Card>
       </Space>
     </Spin>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Row, Col, Typography, Spin } from "antd";
 import {
   UserOutlined,
@@ -18,43 +18,39 @@ import type { AnalyticsOverview } from "../../types";
 
 const { Title } = Typography;
 
-// Sample data for charts (will be replaced by real API data)
-const DAU_TREND_DATA = [
-  { date: "Mon", dau: 120, mau: 850 },
-  { date: "Tue", dau: 145, mau: 860 },
-  { date: "Wed", dau: 132, mau: 870 },
-  { date: "Thu", dau: 158, mau: 880 },
-  { date: "Fri", dau: 171, mau: 890 },
-  { date: "Sat", dau: 89, mau: 895 },
-  { date: "Sun", dau: 95, mau: 900 },
-];
+interface TrendPoint {
+  date: string;
+  count: number;
+}
 
-const REVENUE_BY_PLAN_DATA = [
-  { name: "Pro", value: 4500 },
-  { name: "Team", value: 2800 },
-  { name: "Enterprise", value: 1200 },
-  { name: "Free", value: 0 },
-];
+interface PlanDist {
+  plan: string;
+  count: number;
+}
 
-const NOTIFICATION_DATA = [
-  { date: "Mon", push: 450, email: 120, whatsapp: 85, telegram: 45 },
-  { date: "Tue", push: 520, email: 145, whatsapp: 92, telegram: 52 },
-  { date: "Wed", push: 480, email: 130, whatsapp: 78, telegram: 48 },
-  { date: "Thu", push: 560, email: 155, whatsapp: 95, telegram: 55 },
-  { date: "Fri", push: 610, email: 170, whatsapp: 100, telegram: 60 },
-  { date: "Sat", push: 380, email: 90, whatsapp: 65, telegram: 35 },
-  { date: "Sun", push: 340, email: 80, whatsapp: 55, telegram: 30 },
-];
+interface NotifStats {
+  channel: string;
+  total: number;
+  sent: number;
+  delivered: number;
+  failed: number;
+  pending: number;
+}
 
-const API_LATENCY_DATA = [
-  { date: "Mon", p50: 45, p95: 120, p99: 250 },
-  { date: "Tue", p50: 42, p95: 115, p99: 230 },
-  { date: "Wed", p50: 48, p95: 130, p99: 270 },
-  { date: "Thu", p50: 40, p95: 110, p99: 220 },
-  { date: "Fri", p50: 44, p95: 125, p99: 245 },
-  { date: "Sat", p50: 38, p95: 100, p99: 200 },
-  { date: "Sun", p50: 36, p95: 95, p99: 190 },
-];
+interface BillingStats {
+  totalSubscribers: number;
+  activeSubscribers: number;
+  mrr: number;
+  cancelledThisMonth: number;
+}
+
+interface QueueStatus {
+  pending: number;
+  queued: number;
+  sent: number;
+  failed: number;
+  total: number;
+}
 
 export const DashboardPage: React.FC = () => {
   const { data: overviewData, isLoading } = useCustom<AnalyticsOverview>({
@@ -62,7 +58,62 @@ export const DashboardPage: React.FC = () => {
     method: "get",
   });
 
+  const { data: dauData } = useCustom<TrendPoint[]>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/analytics/dau-trend`,
+    method: "get",
+    config: { query: { days: 7 } },
+  });
+
+  const { data: planData } = useCustom<PlanDist[]>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/analytics/plan-distribution`,
+    method: "get",
+  });
+
+  const { data: notifData } = useCustom<NotifStats[]>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/analytics/notification-stats`,
+    method: "get",
+  });
+
+  const { data: billingData } = useCustom<BillingStats>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/billing/stats`,
+    method: "get",
+  });
+
+  const { data: queueData } = useCustom<QueueStatus>({
+    url: `${API_BASE_URL}${API_ADMIN_PREFIX}/notifications/queue-status`,
+    method: "get",
+  });
+
   const overview = overviewData?.data;
+  const billing = billingData?.data;
+  const queue = queueData?.data;
+
+  const dauChartData = useMemo(() => {
+    const raw = (dauData?.data as unknown as TrendPoint[]) ?? [];
+    return raw.map((p) => ({
+      date: p.date.slice(5),
+      dau: p.count,
+    }));
+  }, [dauData]);
+
+  const planChartData = useMemo(() => {
+    const raw = (planData?.data as unknown as PlanDist[]) ?? [];
+    return raw.map((p) => ({
+      name: p.plan.charAt(0).toUpperCase() + p.plan.slice(1),
+      value: p.count,
+    }));
+  }, [planData]);
+
+  const notifChartData = useMemo(() => {
+    const raw = (notifData?.data as unknown as NotifStats[]) ?? [];
+    return raw.map((s) => ({
+      channel: s.channel,
+      delivered: s.delivered,
+      sent: s.sent,
+      failed: s.failed,
+      pending: s.pending,
+    }));
+  }, [notifData]);
 
   if (isLoading) {
     return (
@@ -85,8 +136,7 @@ export const DashboardPage: React.FC = () => {
             title="Total Users"
             value={formatNumber(overview?.totalUsers ?? 0)}
             prefix={<UserOutlined />}
-            trend={12.5}
-            trendLabel="vs last month"
+            trendLabel="registered"
           />
         </Col>
         <Col xs={24} sm={12} lg={6}>
@@ -94,26 +144,26 @@ export const DashboardPage: React.FC = () => {
             title="DAU"
             value={formatNumber(overview?.activeUsersToday ?? 0)}
             prefix={<RiseOutlined />}
-            trend={8.3}
-            trendLabel="vs yesterday"
+            trendLabel="active today"
           />
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <StatCard
             title="MRR"
-            value={formatCurrency(8500)}
+            value={formatCurrency((billing as unknown as BillingStats)?.mrr ?? 0)}
             prefix={<DollarOutlined />}
-            trend={15.2}
-            trendLabel="vs last month"
+            trendLabel="this month"
           />
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <StatCard
-            title="Active Queue"
-            value={formatNumber(overview?.totalSubscriptions ?? 0)}
+            title="Queue Pending"
+            value={formatNumber(
+              ((queue as unknown as QueueStatus)?.pending ?? 0) +
+                ((queue as unknown as QueueStatus)?.queued ?? 0),
+            )}
             prefix={<ThunderboltOutlined />}
-            trend={-2.1}
-            trendLabel="queue depth"
+            trendLabel="in queue"
           />
         </Col>
       </Row>
@@ -122,18 +172,15 @@ export const DashboardPage: React.FC = () => {
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} lg={16}>
           <TrendLine
-            title="DAU / MAU Trend"
-            data={DAU_TREND_DATA}
-            dataKeys={[
-              { key: "dau", label: "Daily Active Users" },
-              { key: "mau", label: "Monthly Active Users" },
-            ]}
+            title="Daily Active Users (7d)"
+            data={dauChartData}
+            dataKeys={[{ key: "dau", label: "DAU" }]}
           />
         </Col>
         <Col xs={24} lg={8}>
           <DonutChart
-            title="Revenue by Plan"
-            data={REVENUE_BY_PLAN_DATA}
+            title="Active Subscriptions by Plan"
+            data={planChartData}
           />
         </Col>
       </Row>
@@ -142,25 +189,26 @@ export const DashboardPage: React.FC = () => {
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} lg={12}>
           <StackedBar
-            title="Notification Success by Channel"
-            data={NOTIFICATION_DATA}
+            title="Notifications by Channel"
+            data={notifChartData}
             dataKeys={[
-              { key: "push", label: "Push" },
-              { key: "email", label: "Email" },
-              { key: "whatsapp", label: "WhatsApp" },
-              { key: "telegram", label: "Telegram" },
+              { key: "delivered", label: "Delivered" },
+              { key: "sent", label: "Sent" },
+              { key: "failed", label: "Failed" },
+              { key: "pending", label: "Pending" },
             ]}
           />
         </Col>
         <Col xs={24} lg={12}>
           <TrendLine
-            title="API Latency (ms)"
-            data={API_LATENCY_DATA}
-            dataKeys={[
-              { key: "p50", label: "P50" },
-              { key: "p95", label: "P95" },
-              { key: "p99", label: "P99" },
+            title="MAU"
+            data={[
+              {
+                date: "This Month",
+                mau: overview?.activeUsersMonth ?? 0,
+              },
             ]}
+            dataKeys={[{ key: "mau", label: "Monthly Active Users" }]}
           />
         </Col>
       </Row>
