@@ -1,79 +1,61 @@
 ---
 ---
 
-<section id="hero" class="relative min-h-screen flex items-center justify-center overflow-hidden">
-  <!-- Layered gradient background -->
-  <div class="absolute inset-0 hero-gradient"></div>
+<section id="hero" class="relative min-h-screen flex items-center overflow-hidden">
+  <!-- Three.js Canvas (particles only) -->
+  <canvas id="hero-canvas" class="absolute inset-0 w-full h-full" style="z-index: 0;"></canvas>
+  <div class="hero-grid" style="z-index: 0;" aria-hidden="true"></div>
 
-  <!-- Animated mesh lines -->
-  <div class="absolute inset-0 hero-mesh opacity-[0.015]"></div>
+  <!-- Gradient overlays -->
+  <div class="absolute inset-0 bg-gradient-to-b from-midnight/30 via-transparent to-midnight pointer-events-none" style="z-index: 1;"></div>
 
-  <!-- Floating ambient shapes -->
-  <div class="absolute top-[15%] left-[10%] w-72 h-72 bg-violet/8 rounded-full blur-[100px] animate-float" data-parallax="2"></div>
-  <div class="absolute bottom-[20%] right-[8%] w-96 h-96 bg-gold/4 rounded-full blur-[120px] animate-float" style="animation-delay: -3s;" data-parallax="1.5"></div>
-  <div class="absolute top-[40%] left-[60%] w-[500px] h-[500px] bg-deep-violet/5 rounded-full blur-[150px] animate-glow-pulse" data-parallax="0.5"></div>
-
-  <!-- Decorative diagonal line -->
-  <div class="absolute top-0 right-[20%] w-px h-[40vh] bg-gradient-to-b from-transparent via-violet/20 to-transparent hidden lg:block"></div>
-  <div class="absolute bottom-0 left-[15%] w-px h-[30vh] bg-gradient-to-t from-transparent via-gold/10 to-transparent hidden lg:block"></div>
-
-  <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
+  <!-- Content -->
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20 w-full">
     <div class="grid lg:grid-cols-12 gap-8 lg:gap-12 items-center">
       <!-- Left content -->
-      <div class="lg:col-span-7 text-center lg:text-left">
-        <!-- Eyebrow badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-violet/20 bg-violet/5 mb-8 animate-fade-in">
+      <div class="lg:col-span-5 text-center lg:text-left">
+        <!-- Eyebrow -->
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-heavy mb-8 animate-fade-in">
           <span class="w-1.5 h-1.5 rounded-full bg-gold animate-pulse"></span>
           <span class="font-body text-xs font-medium text-purple-mist/60 tracking-wide uppercase">Now in Early Access</span>
         </div>
 
-        <!-- Headline -->
-        <h1 class="font-heading font-black tracking-tight mb-8 animate-fade-in" style="animation-delay: 0.1s;">
-          <span class="block text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] leading-[0.9] text-purple-mist">
-            Break the
+        <!-- Headline with character-split animation -->
+        <h1 class="font-heading font-black tracking-tight mb-8 leading-[0.9]">
+          <span class="char-line block text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] text-purple-mist">
+            <span class="char-wrap"><span class="char" style="--i:0">B</span></span><span class="char-wrap"><span class="char" style="--i:1">r</span></span><span class="char-wrap"><span class="char" style="--i:2">e</span></span><span class="char-wrap"><span class="char" style="--i:3">a</span></span><span class="char-wrap"><span class="char" style="--i:4">k</span></span><span class="char-wrap"><span class="char" style="--i:5">&nbsp;</span></span><span class="char-wrap"><span class="char" style="--i:6">t</span></span><span class="char-wrap"><span class="char" style="--i:7">h</span></span><span class="char-wrap"><span class="char" style="--i:8">e</span></span>
           </span>
-          <span class="block text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] leading-[0.9] mt-2 hero-text-gradient">
-            satisfactory.
+          <span class="char-line block text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] mt-2 hero-gradient-text">
+            <span class="char-wrap"><span class="char" style="--i:0">s</span></span><span class="char-wrap"><span class="char" style="--i:1">a</span></span><span class="char-wrap"><span class="char" style="--i:2">t</span></span><span class="char-wrap"><span class="char" style="--i:3">i</span></span><span class="char-wrap"><span class="char" style="--i:4">s</span></span><span class="char-wrap"><span class="char" style="--i:5">f</span></span><span class="char-wrap"><span class="char" style="--i:6">a</span></span><span class="char-wrap"><span class="char" style="--i:7">c</span></span><span class="char-wrap"><span class="char" style="--i:8">t</span></span><span class="char-wrap"><span class="char" style="--i:9">o</span></span><span class="char-wrap"><span class="char" style="--i:10">r</span></span><span class="char-wrap"><span class="char" style="--i:11">y</span></span><span class="char-wrap"><span class="char" style="--i:12">.</span></span>
           </span>
         </h1>
 
-        <!-- Sub-headline -->
-        <p class="font-body text-lg sm:text-xl text-purple-mist/65 max-w-xl mx-auto lg:mx-0 mb-10 leading-relaxed animate-slide-up" style="animation-delay: 0.3s;">
-          The TODO app that reaches you on <span class="text-purple-mist/90 font-medium">WhatsApp</span>, <span class="text-purple-mist/90 font-medium">Telegram</span>, <span class="text-purple-mist/90 font-medium">Instagram</span>, and 4 more channels. Because push notifications aren't enough.
+        <!-- Subhead -->
+        <p class="font-body text-lg sm:text-xl text-purple-mist/55 max-w-xl mx-auto lg:mx-0 mb-10 leading-relaxed animate-slide-up" style="animation-delay: 0.35s;">
+          The TODO app that reaches you on <span class="text-purple-mist/90 font-medium">WhatsApp</span>, <span class="text-purple-mist/90 font-medium">Telegram</span>, <span class="text-purple-mist/90 font-medium">Instagram</span>, and 4 more channels.
         </p>
 
-        <!-- CTAs -->
+        <!-- CTAs — Pocketchange style with icon reveal -->
         <div class="flex flex-col sm:flex-row items-center lg:items-start gap-4 animate-slide-up" style="animation-delay: 0.5s;">
-          <a
-            href="#"
-            data-ph-capture="true"
-            data-ph-capture-attribute-button="cta-app-store"
-            class="group relative flex items-center gap-3 px-8 py-4 overflow-hidden rounded-2xl"
-          >
-            <span class="absolute inset-0 bg-gold rounded-2xl"></span>
-            <span class="absolute inset-0 bg-gradient-to-r from-gold via-yellow-300 to-gold opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-2xl"></span>
-            <span class="absolute inset-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] rounded-2xl"></span>
-            <svg class="relative w-5 h-5 text-midnight" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-            </svg>
-            <div class="relative text-left">
-              <span class="block text-[10px] font-body text-midnight/70 leading-none">Download on the</span>
-              <span class="block font-heading font-bold text-base text-midnight leading-tight">App Store</span>
-            </div>
+          <a href="#" class="cta-btn cta-btn--primary group">
+            <span class="cta-btn__text">
+              <span class="font-heading font-bold text-sm text-gold">Get Started Free</span>
+            </span>
+            <span class="cta-btn__icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M3 8H13M9 4L13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
           </a>
-          <a
-            href="#"
-            data-ph-capture="true"
-            data-ph-capture-attribute-button="cta-google-play"
-            class="group relative flex items-center gap-3 px-8 py-4 rounded-2xl border border-violet/20 hover:border-violet/40 bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-500"
-          >
-            <svg class="w-5 h-5 text-purple-mist/80" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 0 1-.61-.92V2.734a1 1 0 0 1 .609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-1.4l2.834 1.64a1 1 0 0 1 0 1.74l-2.834 1.64-2.532-2.533 2.532-2.488zM5.864 2.658L16.8 8.99l-2.302 2.302-8.634-8.634z"/>
-            </svg>
-            <div class="text-left">
-              <span class="block text-[10px] font-body text-purple-mist/60 leading-none">Get it on</span>
-              <span class="block font-heading font-bold text-base text-purple-mist leading-tight group-hover:text-gold transition-colors duration-300">Google Play</span>
-            </div>
+          <a href="#" class="cta-btn cta-btn--ghost group">
+            <span class="cta-btn__text">
+              <span class="font-heading font-medium text-sm text-purple-mist/80">Watch Demo</span>
+            </span>
+            <span class="cta-btn__icon cta-btn__icon--ghost">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M6 4L11 8L6 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
           </a>
         </div>
 
@@ -91,169 +73,801 @@
           </div>
           <div class="text-left">
             <p class="font-heading font-bold text-sm text-gold">2,000+</p>
-            <p class="font-body text-xs text-purple-mist/60">early access users</p>
+            <p class="font-body text-xs text-purple-mist/50">early access users</p>
           </div>
         </div>
       </div>
 
-      <!-- Right side - App preview -->
-      <div class="lg:col-span-5 flex justify-center lg:justify-end animate-scale-in" style="animation-delay: 0.4s;">
-        <div class="relative" data-parallax="0.3">
-          <!-- Phone frame -->
-          <div class="relative w-[260px] h-[520px] sm:w-[280px] sm:h-[560px]">
-            <!-- Glow behind phone -->
-            <div class="absolute -inset-8 bg-gradient-to-b from-violet/15 via-violet/5 to-gold/5 rounded-[3rem] blur-2xl"></div>
+      <!-- Right side — 3-Phone Mockup -->
+      <div class="lg:col-span-7 flex justify-center lg:justify-end hero-phones-wrapper animate-scale-in" style="animation-delay: 0.4s;" aria-hidden="true">
+        <div class="hero-phones float-anim">
 
-            <!-- Phone body -->
-            <div class="relative w-full h-full rounded-[2.5rem] border border-violet/20 bg-midnight-light/90 backdrop-blur-xl overflow-hidden shadow-2xl shadow-violet/10">
-              <!-- Dynamic Island -->
-              <div class="absolute top-3 left-1/2 -translate-x-1/2 w-[90px] h-[25px] bg-black rounded-full z-20 flex items-center justify-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-midnight-lighter"></div>
-              </div>
-
-              <!-- Screen content -->
-              <div class="absolute inset-[3px] rounded-[2.3rem] bg-gradient-to-b from-midnight-lighter via-midnight to-midnight overflow-hidden">
-                <!-- Status bar -->
-                <div class="flex items-center justify-between px-7 pt-4 pb-2">
-                  <span class="font-body text-[10px] text-purple-mist/30 font-medium">9:41</span>
-                  <div class="flex items-center gap-1">
-                    <div class="flex gap-[2px]">
-                      <div class="w-[3px] h-[6px] rounded-sm bg-purple-mist/25"></div>
-                      <div class="w-[3px] h-[8px] rounded-sm bg-purple-mist/25"></div>
-                      <div class="w-[3px] h-[10px] rounded-sm bg-purple-mist/25"></div>
-                      <div class="w-[3px] h-[12px] rounded-sm bg-purple-mist/30"></div>
-                    </div>
-                    <div class="w-6 h-3 rounded-sm border border-purple-mist/20 ml-1 flex items-center justify-end pr-[2px]">
-                      <div class="w-3.5 h-[6px] rounded-[1px] bg-gold/60"></div>
-                    </div>
-                  </div>
+          <!-- Left Phone: Onboarding -->
+          <div class="phone phone--left">
+            <div class="phone__screen">
+              <div class="phone__notch"></div>
+              <div class="phone-ui phone-ui--onboard">
+                <div class="phone-ui__logo">
+                  <div class="phone-ui__logo-mark">U</div>
+                  <span>UNJYNX</span>
                 </div>
-
-                <!-- App header -->
-                <div class="px-5 pt-1 pb-3 flex items-center justify-between">
-                  <div>
-                    <span class="font-heading font-bold text-base text-gold">UNJYNX</span>
-                    <p class="font-body text-[9px] text-purple-mist/30 mt-0.5">Good morning, Arjun</p>
-                  </div>
-                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet to-deep-violet flex items-center justify-center">
-                    <span class="text-[10px] font-bold text-gold">A</span>
-                  </div>
+                <div class="phone-ui__illus">
+                  <div class="phone-ui__illus-card"></div>
+                  <div class="phone-ui__illus-shape"></div>
                 </div>
-
-                <!-- Daily wisdom card -->
-                <div class="mx-4 p-3 rounded-xl bg-gradient-to-r from-violet/10 to-gold/5 border border-violet/10 mb-3">
-                  <p class="font-body text-[8px] text-gold/70 uppercase tracking-wider mb-1">Daily Wisdom</p>
-                  <p class="font-body text-[10px] text-purple-mist/70 italic leading-relaxed">"The impediment to action advances action."</p>
-                  <p class="font-body text-[8px] text-purple-mist/30 mt-1">— Marcus Aurelius</p>
-                </div>
-
-                <!-- Tasks -->
-                <div class="px-4">
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="font-heading font-semibold text-[11px] text-purple-mist/80">Today's Tasks</span>
-                    <span class="font-body text-[9px] text-violet">3 remaining</span>
+                <div class="phone-ui__onboard-title">Break the<br>satisfactory.</div>
+                <div class="phone-ui__btn-stack">
+                  <div class="phone-ui__btn phone-ui__btn--primary">
+                    <span class="phone-ui__btn-icon">+</span>
+                    Create Account
                   </div>
-
-                  <div class="space-y-2">
-                    <!-- Completed task -->
-                    <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02]">
-                      <div class="w-5 h-5 rounded-full bg-gold/20 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-3 h-3 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <span class="font-body text-[10px] text-purple-mist/30 line-through">Review Q4 metrics</span>
-                    </div>
-                    <!-- Active task -->
-                    <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-violet/[0.06] border border-violet/10">
-                      <div class="w-5 h-5 rounded-full border-[1.5px] border-violet/40 flex-shrink-0"></div>
-                      <div class="flex-1 min-w-0">
-                        <span class="font-body text-[10px] text-purple-mist/80 block">Ship landing page v2</span>
-                        <div class="flex items-center gap-1.5 mt-1">
-                          <span class="text-[7px] px-1.5 py-0.5 rounded-full bg-violet/15 text-violet font-medium">High</span>
-                          <span class="text-[7px] text-purple-mist/25">via WhatsApp</span>
-                        </div>
-                      </div>
-                    </div>
-                    <!-- Task -->
-                    <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02]">
-                      <div class="w-5 h-5 rounded-full border-[1.5px] border-purple-mist/15 flex-shrink-0"></div>
-                      <span class="font-body text-[10px] text-purple-mist/50">Prepare investor deck</span>
-                    </div>
-                    <!-- Task -->
-                    <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.02]">
-                      <div class="w-5 h-5 rounded-full border-[1.5px] border-purple-mist/15 flex-shrink-0"></div>
-                      <span class="font-body text-[10px] text-purple-mist/50">Call with design team</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- WhatsApp notification overlay -->
-                <div class="absolute bottom-12 left-3 right-3 phone-notification">
-                  <div class="p-3 rounded-2xl bg-midnight-lighter/95 backdrop-blur-lg border border-violet/15 shadow-xl shadow-black/30">
-                    <div class="flex items-start gap-2.5">
-                      <div class="w-7 h-7 rounded-lg bg-[#25D366] flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <span class="text-white font-bold text-[9px]">W</span>
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between">
-                          <span class="font-heading font-semibold text-[10px] text-purple-mist">UNJYNX Reminder</span>
-                          <span class="font-body text-[8px] text-purple-mist/30">now</span>
-                        </div>
-                        <p class="font-body text-[9px] text-purple-mist/50 mt-0.5 leading-relaxed">Ship landing page v2 is due in 15 min. Time to lock in.</p>
-                      </div>
-                    </div>
+                  <div class="phone-ui__btn phone-ui__btn--outline">
+                    ↺ Sign In
                   </div>
                 </div>
               </div>
-
-              <!-- Home indicator -->
-              <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-28 h-1 rounded-full bg-purple-mist/15"></div>
             </div>
           </div>
+
+          <!-- Center Phone: Main Wallet/Tasks -->
+          <div class="phone phone--main">
+            <div class="phone__screen">
+              <div class="phone__notch"></div>
+              <div class="phone-ui phone-ui--tasks">
+                <!-- Header -->
+                <div class="phone-ui__header">
+                  <div>
+                    <span class="phone-ui__brand">UNJYNX</span>
+                    <div class="phone-ui__greeting">Good morning, Arjun</div>
+                  </div>
+                  <div class="phone-ui__avatar">A</div>
+                </div>
+                <!-- Wisdom card -->
+                <div class="phone-ui__wisdom">
+                  <div class="phone-ui__wisdom-label">Daily Wisdom</div>
+                  <div class="phone-ui__wisdom-quote">"The impediment to action advances action."</div>
+                  <div class="phone-ui__wisdom-author">— Marcus Aurelius</div>
+                </div>
+                <!-- Tasks -->
+                <div class="phone-ui__tasks-header">
+                  <span>Today's Tasks</span>
+                  <span class="phone-ui__tasks-count">3 remaining</span>
+                </div>
+                <div class="phone-ui__task phone-ui__task--done">
+                  <div class="phone-ui__task-check phone-ui__task-check--done">✓</div>
+                  <span class="phone-ui__task-text--done">Review Q4 metrics</span>
+                </div>
+                <div class="phone-ui__task phone-ui__task--active">
+                  <div class="phone-ui__task-check"></div>
+                  <div>
+                    <span>Ship landing page v2</span>
+                    <div class="phone-ui__task-tags">
+                      <span class="phone-ui__task-tag phone-ui__task-tag--violet">High</span>
+                      <span class="phone-ui__task-tag--muted">via WhatsApp</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="phone-ui__task">
+                  <div class="phone-ui__task-check"></div>
+                  <span>Prepare investor deck</span>
+                </div>
+                <div class="phone-ui__task">
+                  <div class="phone-ui__task-check"></div>
+                  <span>Call with design team</span>
+                </div>
+                <!-- WhatsApp notification -->
+                <div class="phone-ui__notif">
+                  <div class="phone-ui__notif-icon">W</div>
+                  <div>
+                    <div class="phone-ui__notif-title">UNJYNX Reminder <span class="phone-ui__notif-time">now</span></div>
+                    <div class="phone-ui__notif-body">Ship landing page v2 is due in 15 min.</div>
+                  </div>
+                </div>
+                <!-- Bottom nav -->
+                <div class="phone-ui__nav">
+                  <span class="phone-ui__nav-item phone-ui__nav-item--active">⊞</span>
+                  <span class="phone-ui__nav-item">◎</span>
+                  <span class="phone-ui__nav-item">⇄</span>
+                  <span class="phone-ui__nav-item">◉</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Phone: Channels -->
+          <div class="phone phone--right">
+            <div class="phone__screen">
+              <div class="phone__notch"></div>
+              <div class="phone-ui phone-ui--channels">
+                <div class="phone-ui__ch-title">Channels</div>
+                <div class="phone-ui__ch-banner">
+                  <div class="phone-ui__ch-banner-eyebrow">ESCALATION</div>
+                  <div class="phone-ui__ch-banner-title">YOUR REMINDERS<br>YOUR WAY</div>
+                </div>
+                <div class="phone-ui__ch-stats">
+                  <div class="phone-ui__ch-stat">
+                    <div class="phone-ui__ch-stat-label">Active</div>
+                    <div class="phone-ui__ch-stat-value">7</div>
+                    <div class="phone-ui__ch-stat-change--up">All connected</div>
+                  </div>
+                  <div class="phone-ui__ch-stat">
+                    <div class="phone-ui__ch-stat-label">Sent Today</div>
+                    <div class="phone-ui__ch-stat-value">23</div>
+                    <div class="phone-ui__ch-stat-change--up">↑ 12%</div>
+                  </div>
+                </div>
+                <div class="phone-ui__ch-icons">
+                  <div class="phone-ui__ch-icon" style="background:#25D366;">W</div>
+                  <div class="phone-ui__ch-icon" style="background:#0088CC;">T</div>
+                  <div class="phone-ui__ch-icon" style="background:#E4405F;">I</div>
+                </div>
+                <div class="phone-ui__nav phone-ui__nav--gold">
+                  <span class="phone-ui__nav-item">⊞</span>
+                  <span class="phone-ui__nav-item phone-ui__nav-item--active">◎</span>
+                  <span class="phone-ui__nav-item">⇄</span>
+                  <span class="phone-ui__nav-item">◉</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Scroll indicator -->
-  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-fade-in" style="animation-delay: 1.2s;">
-    <span class="font-body text-[10px] text-purple-mist/20 uppercase tracking-[0.2em]">Scroll</span>
-    <div class="w-5 h-8 rounded-full border border-purple-mist/10 flex items-start justify-center p-1.5">
-      <div class="w-1 h-1.5 rounded-full bg-gold/60 animate-bounce"></div>
+  <!-- Scroll indicator — bouncing arrow -->
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-10 scroll-bounce-wrap">
+    <span class="font-body text-[10px] text-purple-mist/25 uppercase tracking-[0.25em]">Scroll</span>
+    <div class="scroll-bounce-arrow">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M10 4V16M5 11L10 16L15 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
     </div>
   </div>
 </section>
 
 <style>
-  .hero-gradient {
-    background:
-      radial-gradient(ellipse 70% 50% at 30% 20%, rgba(108, 92, 231, 0.1) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(255, 215, 0, 0.04) 0%, transparent 50%),
-      radial-gradient(ellipse 60% 60% at 50% 50%, rgba(107, 33, 168, 0.06) 0%, transparent 50%);
-  }
-
-  .hero-mesh {
-    background-image:
-      linear-gradient(rgba(248, 245, 255, 1) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(248, 245, 255, 1) 1px, transparent 1px);
-    background-size: 80px 80px;
-  }
-
-  .hero-text-gradient {
+  .hero-gradient-text {
     background: linear-gradient(135deg, #FFD700 0%, #B8860B 40%, #FFD700 60%, #6C5CE7 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  .phone-notification {
-    animation: slideNotification 4s ease-in-out infinite;
+  /* ====== Character-split text animation (Pocketchange style) ====== */
+  .char-wrap {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+  }
+  .char {
+    display: inline-block;
+    transform: translateY(110%);
+    animation: charReveal 0.8s cubic-bezier(0.430, 0.195, 0.020, 1.000) forwards;
+    animation-delay: calc(var(--i) * 0.05s + 0.3s);
+  }
+  @keyframes charReveal {
+    0% { transform: translateY(110%); }
+    100% { transform: translateY(0); }
+  }
+  /* Hover wave: each char lifts on hover */
+  .char-line:hover .char {
+    animation: charWave 0.4s cubic-bezier(0.430, 0.195, 0.020, 1.000) forwards;
+    animation-delay: calc(var(--i) * 0.03s);
+  }
+  @keyframes charWave {
+    0% { transform: translateY(0); }
+    40% { transform: translateY(-15%); }
+    100% { transform: translateY(0); }
   }
 
-  @keyframes slideNotification {
-    0%, 100% { transform: translateY(10px); opacity: 0; }
-    15%, 85% { transform: translateY(0); opacity: 1; }
-    90% { transform: translateY(-5px); opacity: 0; }
+  /* ====== CTA Buttons (Pocketchange style) ====== */
+  .cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    height: 56px;
+    padding: 0 28px;
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.5s cubic-bezier(0.430, 0.195, 0.020, 1.000);
+  }
+  .cta-btn--primary {
+    background: rgba(15, 10, 26, 0.5);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.05);
+  }
+  .cta-btn--primary:hover {
+    border-color: rgba(255, 215, 0, 0.4);
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.12);
+    padding-right: 56px;
+  }
+  .cta-btn--ghost {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .cta-btn--ghost:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(108, 92, 231, 0.3);
+    padding-right: 56px;
+  }
+  .cta-btn__text {
+    white-space: nowrap;
+    transition: transform 0.5s cubic-bezier(0.430, 0.195, 0.020, 1.000);
+  }
+  .cta-btn:hover .cta-btn__text {
+    transform: translateX(-8px);
+  }
+  .cta-btn__icon {
+    position: absolute;
+    right: 20px;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #FFD700;
+    color: #0F0A1A;
+    opacity: 0;
+    transform: translateX(20px);
+    transition: all 0.5s cubic-bezier(0.430, 0.195, 0.020, 1.000);
+  }
+  .cta-btn__icon--ghost {
+    background: rgba(108, 92, 231, 0.8);
+    color: white;
+  }
+  .cta-btn:hover .cta-btn__icon {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  /* ====== Scroll bounce (Pocketchange style) ====== */
+  .scroll-bounce-wrap {
+    animation: fadeIn 0.8s ease-out 1.5s both;
+  }
+  .scroll-bounce-arrow {
+    color: rgba(255, 215, 0, 0.5);
+    animation: scrollBounce 1.5s cubic-bezier(0.430, 0.195, 0.020, 1.000) infinite;
+  }
+  @keyframes scrollBounce {
+    0%, 100% { transform: translateY(0); opacity: 0.5; }
+    50% { transform: translateY(8px); opacity: 1; }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* 3-Phone Layout */
+  .hero-phones {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: clamp(-1.5rem, -1vw, 0px);
+    perspective: 1200px;
+  }
+
+  .float-anim {
+    animation: heroFloat 4s ease-in-out infinite;
+  }
+  @keyframes heroFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+
+  .phone {
+    width: clamp(130px, 20vw, 200px);
+    border-radius: 28px;
+    background: #111118;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+    position: relative;
+    flex-shrink: 0;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .phone:hover {
+    transform: translateY(-8px) !important;
+  }
+
+  .phone--main {
+    z-index: 10;
+    transform: scale(1.08);
+    border-color: rgba(108, 92, 231, 0.4);
+    box-shadow: 0 0 40px rgba(108, 92, 231, 0.3), 0 0 80px rgba(108, 92, 231, 0.12), 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+  .phone--left {
+    transform: rotate(-5deg) translateX(12px);
+    opacity: 0.8;
+  }
+  .phone--right {
+    transform: rotate(5deg) translateX(-12px);
+    opacity: 0.8;
+  }
+
+  .phone__screen {
+    aspect-ratio: 9 / 19;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .phone__notch {
+    height: 20px;
+    background: #0A0A0F;
+    border-radius: 0 0 12px 12px;
+    width: 40%;
+    margin: 0 auto;
+  }
+
+  /* Phone UI Screens */
+  .phone-ui {
+    flex: 1;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 8px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  /* Onboarding Screen (Left) */
+  .phone-ui--onboard {
+    background: linear-gradient(180deg, #F8F5FF, #EDE8FF);
+    color: #0F0A1A;
+    align-items: center;
+    text-align: center;
+  }
+  .phone-ui__logo {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    margin-top: 4px;
+  }
+  .phone-ui__logo-mark {
+    width: 14px;
+    height: 14px;
+    background: linear-gradient(135deg, #6C5CE7, #6B21A8);
+    border-radius: 4px;
+    display: grid;
+    place-items: center;
+    color: #FFD700;
+    font-size: 7px;
+    font-weight: 900;
+  }
+  .phone-ui__illus {
+    width: 70px;
+    height: 70px;
+    margin: 8px auto;
+    position: relative;
+  }
+  .phone-ui__illus-shape {
+    width: 55px;
+    height: 50px;
+    background: linear-gradient(135deg, #6C5CE7, #FFD700);
+    border-radius: 8px;
+    transform: rotate(-15deg);
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    translate: -50% 0;
+  }
+  .phone-ui__illus-card {
+    width: 45px;
+    height: 32px;
+    background: #6C5CE7;
+    border-radius: 5px;
+    transform: rotate(10deg);
+    position: absolute;
+    top: 0;
+    right: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  .phone-ui__onboard-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1.2;
+    color: #0F0A1A;
+  }
+  .phone-ui__btn-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    margin-top: auto;
+    padding-bottom: 4px;
+  }
+  .phone-ui__btn {
+    padding: 6px;
+    border-radius: 8px;
+    font-size: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+  }
+  .phone-ui__btn--primary {
+    background: #0F0A1A;
+    color: #FFD700;
+  }
+  .phone-ui__btn--outline {
+    border: 1px solid rgba(15, 10, 26, 0.15);
+    color: #0F0A1A;
+  }
+  .phone-ui__btn-icon {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #FFD700;
+    color: #0F0A1A;
+    display: grid;
+    place-items: center;
+    font-size: 8px;
+    font-weight: 700;
+  }
+
+  /* Tasks Screen (Center) */
+  .phone-ui--tasks {
+    background: linear-gradient(180deg, #1A1029, #0F0A1A);
+    color: #F8F5FF;
+  }
+  .phone-ui__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 2px;
+  }
+  .phone-ui__brand {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    color: #FFD700;
+  }
+  .phone-ui__greeting {
+    font-size: 7px;
+    color: rgba(248, 245, 255, 0.35);
+    margin-top: 1px;
+  }
+  .phone-ui__avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6C5CE7, #6B21A8);
+    display: grid;
+    place-items: center;
+    font-size: 8px;
+    font-weight: 700;
+    color: #FFD700;
+  }
+  .phone-ui__wisdom {
+    padding: 6px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(108, 92, 231, 0.15), rgba(255, 215, 0, 0.06));
+    border: 1px solid rgba(108, 92, 231, 0.12);
+  }
+  .phone-ui__wisdom-label {
+    font-size: 6px;
+    color: rgba(255, 215, 0, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 2px;
+  }
+  .phone-ui__wisdom-quote {
+    font-size: 7px;
+    font-style: italic;
+    color: rgba(248, 245, 255, 0.65);
+    line-height: 1.4;
+  }
+  .phone-ui__wisdom-author {
+    font-size: 6px;
+    color: rgba(248, 245, 255, 0.3);
+    margin-top: 2px;
+  }
+  .phone-ui__tasks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Outfit', sans-serif;
+    font-size: 8px;
+    font-weight: 600;
+    color: rgba(248, 245, 255, 0.8);
+    padding: 2px 0;
+  }
+  .phone-ui__tasks-count {
+    font-size: 7px;
+    color: #6C5CE7;
+    font-weight: 400;
+  }
+  .phone-ui__task {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 7px;
+    color: rgba(248, 245, 255, 0.7);
+  }
+  .phone-ui__task--done { opacity: 0.5; }
+  .phone-ui__task--active {
+    background: rgba(108, 92, 231, 0.1);
+    border: 1px solid rgba(108, 92, 231, 0.15);
+  }
+  .phone-ui__task-check {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(108, 92, 231, 0.3);
+    flex-shrink: 0;
+  }
+  .phone-ui__task-check--done {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: #FFD700;
+    color: #FFD700;
+    font-size: 6px;
+    display: grid;
+    place-items: center;
+  }
+  .phone-ui__task-text--done {
+    text-decoration: line-through;
+    color: rgba(248, 245, 255, 0.3);
+  }
+  .phone-ui__task-tags {
+    display: flex;
+    gap: 3px;
+    margin-top: 1px;
+  }
+  .phone-ui__task-tag--violet {
+    font-size: 5px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: rgba(108, 92, 231, 0.2);
+    color: #6C5CE7;
+  }
+  .phone-ui__task-tag--muted {
+    font-size: 5px;
+    color: rgba(248, 245, 255, 0.2);
+  }
+  .phone-ui__notif {
+    margin-top: auto;
+    display: flex;
+    gap: 5px;
+    padding: 6px;
+    border-radius: 10px;
+    background: rgba(26, 16, 41, 0.95);
+    border: 1px solid rgba(108, 92, 231, 0.12);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    animation: notifPulse 4s ease-in-out infinite;
+  }
+  @keyframes notifPulse {
+    0%, 100% { transform: translateY(3px); opacity: 0.7; }
+    50% { transform: translateY(0); opacity: 1; }
+  }
+  .phone-ui__notif-icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    background: #25D366;
+    display: grid;
+    place-items: center;
+    color: white;
+    font-size: 8px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .phone-ui__notif-title {
+    font-size: 7px;
+    font-weight: 600;
+    color: rgba(248, 245, 255, 0.9);
+  }
+  .phone-ui__notif-time {
+    color: rgba(248, 245, 255, 0.3);
+    font-weight: 400;
+  }
+  .phone-ui__notif-body {
+    font-size: 6px;
+    color: rgba(248, 245, 255, 0.45);
+    margin-top: 1px;
+  }
+
+  /* Bottom Nav */
+  .phone-ui__nav {
+    display: flex;
+    justify-content: space-around;
+    padding: 6px 0 2px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    margin-top: auto;
+  }
+  .phone-ui__nav-item {
+    font-size: 10px;
+    color: rgba(248, 245, 255, 0.2);
+  }
+  .phone-ui__nav-item--active {
+    color: #6C5CE7;
+  }
+  .phone-ui__nav--gold .phone-ui__nav-item--active {
+    color: #FFD700;
+  }
+
+  /* Channels Screen (Right) */
+  .phone-ui--channels {
+    background: linear-gradient(180deg, #1A1029, #0F0A1A);
+    color: #F8F5FF;
+  }
+  .phone-ui__ch-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 2px;
+  }
+  .phone-ui__ch-banner {
+    border-radius: 8px;
+    padding: 8px;
+    background: linear-gradient(135deg, rgba(108, 92, 231, 0.25), rgba(255, 215, 0, 0.1));
+    border: 1px solid rgba(108, 92, 231, 0.15);
+  }
+  .phone-ui__ch-banner-eyebrow {
+    font-size: 5px;
+    letter-spacing: 0.15em;
+    color: #FFD700;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .phone-ui__ch-banner-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 9px;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+  .phone-ui__ch-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+  .phone-ui__ch-stat {
+    padding: 5px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .phone-ui__ch-stat-label {
+    font-size: 5px;
+    color: rgba(248, 245, 255, 0.4);
+  }
+  .phone-ui__ch-stat-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .phone-ui__ch-stat-change--up {
+    font-size: 5px;
+    color: #25D366;
+  }
+  .phone-ui__ch-icons {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin-top: auto;
+  }
+  .phone-ui__ch-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  /* Hide side phones on mobile */
+  @media (max-width: 640px) {
+    .phone--left, .phone--right { display: none; }
+    .phone--main { transform: scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .float-anim { animation: none; }
+    .phone-ui__notif { animation: none; }
   }
 </style>
+
+<script>
+  import * as THREE from 'three';
+
+  const canvas = document.getElementById('hero-canvas') as HTMLCanvasElement;
+  if (!canvas) throw new Error('Canvas not found');
+
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Renderer
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.set(0, 0, 12);
+
+  // Particles only — no 3D phone anymore
+  const particleCount = window.innerWidth < 768 ? 80 : 160;
+  const particlePositions = new Float32Array(particleCount * 3);
+  const particleColors = new Float32Array(particleCount * 3);
+  const goldCol = new THREE.Color(0xFFD700);
+  const violetCol = new THREE.Color(0x6C5CE7);
+
+  for (let i = 0; i < particleCount; i++) {
+    particlePositions[i * 3] = (Math.random() - 0.5) * 30;
+    particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 20;
+    particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 12 - 2;
+    const col = Math.random() > 0.5 ? goldCol : violetCol;
+    particleColors[i * 3] = col.r;
+    particleColors[i * 3 + 1] = col.g;
+    particleColors[i * 3 + 2] = col.b;
+  }
+
+  const particleGeo = new THREE.BufferGeometry();
+  particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+  particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+
+  const spriteCanvas = document.createElement('canvas');
+  spriteCanvas.width = 64;
+  spriteCanvas.height = 64;
+  const spriteCtx = spriteCanvas.getContext('2d')!;
+  const spriteGrad = spriteCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  spriteGrad.addColorStop(0, 'rgba(255,255,255,1)');
+  spriteGrad.addColorStop(0.3, 'rgba(255,255,255,0.6)');
+  spriteGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  spriteCtx.fillStyle = spriteGrad;
+  spriteCtx.fillRect(0, 0, 64, 64);
+  const spriteTexture = new THREE.CanvasTexture(spriteCanvas);
+
+  const particleMat = new THREE.PointsMaterial({
+    size: 0.12,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.8,
+    map: spriteTexture,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    sizeAttenuation: true,
+  });
+  const particles = new THREE.Points(particleGeo, particleMat);
+  scene.add(particles);
+
+  const clock = new THREE.Clock();
+
+  function animate() {
+    requestAnimationFrame(animate);
+    const time = clock.getElapsedTime();
+
+    const positions = particleGeo.attributes.position.array as Float32Array;
+    for (let i = 0; i < particleCount; i++) {
+      positions[i * 3 + 1] += Math.sin(time * 0.3 + i * 0.1) * 0.001;
+      positions[i * 3] += Math.cos(time * 0.2 + i * 0.05) * 0.0005;
+    }
+    particleGeo.attributes.position.needsUpdate = true;
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>

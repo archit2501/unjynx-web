@@ -1,9 +1,7 @@
 ---
 const plans = [
   {
-    name: 'Free',
-    price: { monthly: '0', annual: '0' },
-    description: 'Get started with the basics',
+    name: 'Free', price: { monthly: '0', annual: '0' }, description: 'Get started with the basics',
     features: [
       { text: 'Up to 25 tasks', included: true },
       { text: 'Push notifications', included: true },
@@ -14,13 +12,10 @@ const plans = [
       { text: 'Ghost Mode', included: false },
       { text: 'AI smart scheduling', included: false },
     ],
-    cta: 'Start Free',
-    highlighted: false,
+    cta: 'Start Free', highlighted: false,
   },
   {
-    name: 'Pro',
-    price: { monthly: '6.99', annual: '4.99' },
-    description: 'For individuals who mean business',
+    name: 'Pro', price: { monthly: '6.99', annual: '4.99' }, description: 'For individuals who mean business',
     features: [
       { text: 'Unlimited tasks', included: true },
       { text: 'All 7 channels', included: true },
@@ -31,13 +26,10 @@ const plans = [
       { text: 'Ghost Mode', included: true },
       { text: 'AI smart scheduling', included: true },
     ],
-    cta: 'Go Pro',
-    highlighted: true,
+    cta: 'Go Pro', highlighted: true,
   },
   {
-    name: 'Team',
-    price: { monthly: '8.99', annual: '6.99' },
-    description: 'Per user, for teams that ship',
+    name: 'Team', price: { monthly: '8.99', annual: '6.99' }, description: 'Per user, for teams that ship',
     features: [
       { text: 'Everything in Pro', included: true },
       { text: 'Team workspaces', included: true },
@@ -48,19 +40,20 @@ const plans = [
       { text: 'API access', included: true },
       { text: 'Dedicated support', included: true },
     ],
-    cta: 'Start Trial',
-    highlighted: false,
+    cta: 'Start Trial', highlighted: false,
   },
 ];
 ---
 
 <section id="pricing" class="relative py-28 sm:py-36">
-  <!-- Background -->
   <div class="absolute inset-0 bg-gradient-to-b from-midnight via-midnight-light/20 to-midnight"></div>
   <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet/10 to-transparent"></div>
 
+  <!-- Decorative grid pattern background -->
+  <div class="pricing-grid-bg absolute inset-0 pointer-events-none" aria-hidden="true"></div>
+
   <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- Section header -->
+    <!-- Header -->
     <div class="text-center mb-16 reveal">
       <div class="inline-flex items-center gap-3 mb-6">
         <div class="w-8 h-px bg-gold"></div>
@@ -70,79 +63,62 @@ const plans = [
       <h2 class="font-heading font-bold text-4xl sm:text-5xl md:text-[3.5rem] text-purple-mist leading-[1.1] mb-6">
         Simple, transparent pricing
       </h2>
-      <p class="font-body text-lg text-purple-mist/60 max-w-lg mx-auto mb-10">
+      <p class="font-body text-lg text-purple-mist/50 max-w-lg mx-auto mb-10">
         No hidden fees. No surprises. Cancel anytime.
       </p>
 
-      <!-- Toggle -->
-      <div class="inline-flex items-center gap-1 p-1 rounded-xl bg-midnight-light/80 border border-white/[0.04]" role="tablist" aria-label="Billing period">
-        <button
-          id="toggle-monthly"
-          class="pricing-toggle px-5 py-3 rounded-lg font-body text-sm font-medium transition-all duration-300 bg-violet/90 text-white"
-          data-period="monthly"
-          role="tab"
-          aria-selected="true"
-          aria-controls="pricing-cards"
-        >
+      <!-- Toggle with spring transition -->
+      <div class="inline-flex items-center gap-1 p-1 rounded-xl glass-light" role="tablist" aria-label="Billing period">
+        <button id="toggle-monthly" class="pricing-toggle px-5 py-3 rounded-lg font-body text-sm font-medium bg-violet/90 text-white" data-period="monthly" role="tab" aria-selected="true" aria-controls="pricing-cards">
           Monthly
         </button>
-        <button
-          id="toggle-annual"
-          class="pricing-toggle px-5 py-3 rounded-lg font-body text-sm font-medium transition-all duration-300 text-purple-mist/60 hover:text-purple-mist/80"
-          data-period="annual"
-          role="tab"
-          aria-selected="false"
-          aria-controls="pricing-cards"
-        >
-          Annual
-          <span class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gold/10 text-gold">-40%</span>
+        <button id="toggle-annual" class="pricing-toggle px-5 py-3 rounded-lg font-body text-sm font-medium text-purple-mist/60 hover:text-purple-mist/80" data-period="annual" role="tab" aria-selected="false" aria-controls="pricing-cards">
+          Annual <span class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gold/10 text-gold">-40%</span>
         </button>
       </div>
     </div>
 
-    <!-- Pricing cards -->
-    <div id="pricing-cards" class="grid grid-cols-1 md:grid-cols-3 gap-5 reveal-children" role="tabpanel">
+    <!-- Cards -->
+    <div id="pricing-cards" class="pricing-cards-container grid grid-cols-1 md:grid-cols-3 gap-5 reveal-children" role="tabpanel">
       {plans.map((plan) => (
-        <div class={`pricing-card group relative rounded-2xl transition-all duration-500 ${
+        <div class={`tilt-card pricing-card group relative rounded-2xl transition-all duration-500 ${
           plan.highlighted
-            ? 'bg-gradient-to-b from-midnight-lighter to-midnight-light border-2 border-gold/30 shadow-xl shadow-gold/[0.03] md:-mt-4 md:mb-0 md:pb-4'
-            : 'bg-midnight-light/30 border border-white/[0.04] hover:border-white/[0.08]'
+            ? 'glass-medium pro-card md:-mt-4 md:mb-0 md:pb-4'
+            : 'glass-light hover:bg-white/[0.04]'
         }`}>
+          {/* Animated gradient border on Pro card */}
           {plan.highlighted && (
-            <div class="absolute -top-3.5 left-1/2 -translate-x-1/2">
+            <div class="pro-animated-border absolute inset-0 rounded-2xl pointer-events-none"></div>
+          )}
+
+          {plan.highlighted && (
+            <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
               <span class="px-4 py-1 bg-gold text-midnight font-heading font-bold text-[10px] rounded-full uppercase tracking-wider shadow-lg shadow-gold/20">
                 Most Popular
               </span>
             </div>
           )}
 
-          <div class="p-8">
-            <!-- Plan header -->
+          <div class="relative z-10 p-8">
             <div class="mb-8">
               <h3 class={`font-heading font-bold text-lg mb-1 ${plan.highlighted ? 'text-gold' : 'text-purple-mist'}`}>
                 {plan.name}
               </h3>
-              <p class="font-body text-xs text-purple-mist/50">{plan.description}</p>
+              <p class="font-body text-xs text-purple-mist/40">{plan.description}</p>
             </div>
 
-            <!-- Price -->
             <div class="mb-8 flex items-baseline gap-1">
-              <span class="font-heading font-black text-5xl text-purple-mist">
-                $<span class="price-value" data-monthly={plan.price.monthly} data-annual={plan.price.annual}>
-                  {plan.price.monthly}
-                </span>
+              <span class={`font-heading font-black text-5xl text-purple-mist ${plan.highlighted ? 'price-glow' : ''}`}>
+                $<span class="price-value" data-monthly={plan.price.monthly} data-annual={plan.price.annual}>{plan.price.monthly}</span>
               </span>
               {plan.price.monthly !== '0' && (
                 <div class="ml-1">
-                  <span class="font-body text-sm text-purple-mist/50">/<span class="period-text">mo</span></span>
-                  <p class="font-body text-[10px] text-purple-mist/20 mt-0.5 annual-note hidden">
-                    billed annually
-                  </p>
+                  <span class="font-body text-sm text-purple-mist/40">/mo</span>
+                  <p class="font-body text-[10px] text-purple-mist/20 mt-0.5 annual-note hidden">billed annually</p>
                 </div>
               )}
             </div>
 
-            <!-- Features -->
             <ul class="space-y-3 mb-8">
               {plan.features.map((feature) => (
                 <li class="flex items-start gap-3">
@@ -157,24 +133,16 @@ const plans = [
                       <div class="w-1 h-1 rounded-full bg-purple-mist/15"></div>
                     </div>
                   )}
-                  <span class={`font-body text-sm ${feature.included ? 'text-purple-mist/70' : 'text-purple-mist/35'}`}>
-                    {feature.text}
-                  </span>
+                  <span class={`font-body text-sm ${feature.included ? 'text-purple-mist/65' : 'text-purple-mist/30'}`}>{feature.text}</span>
                 </li>
               ))}
             </ul>
 
-            <!-- CTA -->
-            <a
-              href="#"
-              data-ph-capture="true"
-              data-ph-capture-attribute-button={`pricing-${plan.name.toLowerCase()}`}
-              class={`block w-full py-3.5 px-6 rounded-xl text-center font-heading font-semibold text-sm transition-all duration-500 ${
-                plan.highlighted
-                  ? 'bg-gold text-midnight hover:shadow-lg hover:shadow-gold/20 hover:scale-[1.02]'
-                  : 'border border-white/[0.08] text-purple-mist/70 hover:border-violet/30 hover:text-purple-mist hover:bg-white/[0.02]'
-              }`}
-            >
+            <a href="#" class={`block w-full py-3.5 px-6 rounded-xl text-center font-heading font-semibold text-sm transition-all duration-500 ${
+              plan.highlighted
+                ? 'bg-gold text-midnight hover:shadow-lg hover:shadow-gold/20 hover:scale-[1.02]'
+                : 'glass-light text-purple-mist/70 hover:text-purple-mist hover:bg-white/[0.06]'
+            }`}>
               {plan.cta}
             </a>
           </div>
@@ -184,6 +152,83 @@ const plans = [
   </div>
 </section>
 
+<style>
+  /* Decorative grid pattern */
+  .pricing-grid-bg {
+    background-image:
+      linear-gradient(rgba(108, 92, 231, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108, 92, 231, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 20%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 20%, transparent 70%);
+  }
+
+  /* Pro card float + glow */
+  .pro-card {
+    border-color: rgba(255, 215, 0, 0.2);
+    box-shadow: 0 20px 60px rgba(108, 92, 231, 0.1), 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    transform: translateZ(20px);
+    transform-style: preserve-3d;
+  }
+
+  /* Animated gradient border on Pro card */
+  .pro-animated-border {
+    background: conic-gradient(
+      from var(--pro-border-angle, 0deg),
+      transparent 0%,
+      rgba(255, 215, 0, 0.35) 12%,
+      rgba(108, 92, 231, 0.3) 25%,
+      transparent 40%,
+      rgba(255, 215, 0, 0.2) 60%,
+      rgba(108, 92, 231, 0.25) 75%,
+      transparent 100%
+    );
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    padding: 1.5px;
+    border-radius: inherit;
+    animation: proRotateBorder 5s linear infinite;
+  }
+
+  @property --pro-border-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+  }
+
+  @keyframes proRotateBorder {
+    0% { --pro-border-angle: 0deg; }
+    100% { --pro-border-angle: 360deg; }
+  }
+
+  /* Price text glow for Pro */
+  .price-glow {
+    text-shadow: 0 0 30px rgba(108, 92, 231, 0.2), 0 0 60px rgba(255, 215, 0, 0.08);
+  }
+
+  /* Spring transition on toggle */
+  .pricing-toggle {
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Cards container perspective */
+  .pricing-cards-container {
+    perspective: 1200px;
+    transform-style: preserve-3d;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pro-animated-border {
+      animation: none;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(108, 92, 231, 0.15));
+    }
+    .pricing-toggle {
+      transition: all 0.15s ease;
+    }
+  }
+</style>
+
 <script>
   const toggleMonthly = document.getElementById('toggle-monthly');
   const toggleAnnual = document.getElementById('toggle-annual');
@@ -192,17 +237,11 @@ const plans = [
 
   function setPeriod(period: string) {
     const isAnnual = period === 'annual';
-
     priceValues.forEach((el) => {
       const htmlEl = el as HTMLElement;
-      htmlEl.textContent = isAnnual
-        ? htmlEl.dataset.annual ?? '0'
-        : htmlEl.dataset.monthly ?? '0';
+      htmlEl.textContent = isAnnual ? htmlEl.dataset.annual ?? '0' : htmlEl.dataset.monthly ?? '0';
     });
-
-    annualNotes.forEach((el) => {
-      el.classList.toggle('hidden', !isAnnual);
-    });
+    annualNotes.forEach((el) => el.classList.toggle('hidden', !isAnnual));
 
     if (toggleMonthly && toggleAnnual) {
       if (isAnnual) {
