@@ -1,42 +1,44 @@
 ---
 ---
 
-<section id="hero" class="relative min-h-screen flex items-center overflow-hidden">
-  <!-- Three.js Canvas (particles only) -->
-  <canvas id="hero-canvas" class="absolute inset-0 w-full h-full" style="z-index: 0;"></canvas>
-  <div class="hero-grid" style="z-index: 0;" aria-hidden="true"></div>
+<section id="hero" class="relative min-h-[100svh] flex items-center">
+  <!-- Three.js Canvas (particles only) — clipped separately -->
+  <div class="absolute inset-0 overflow-hidden" style="z-index: 0;">
+    <canvas id="hero-canvas" class="absolute inset-0 w-full h-full"></canvas>
+    <div class="hero-grid" aria-hidden="true"></div>
+  </div>
 
   <!-- Gradient overlays -->
   <div class="absolute inset-0 bg-gradient-to-b from-midnight/30 via-transparent to-midnight pointer-events-none" style="z-index: 1;"></div>
 
-  <!-- Content -->
-  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20 w-full">
-    <div class="grid lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+  <!-- Content — no overflow-hidden here -->
+  <div class="relative z-10 w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-12 sm:pb-20">
+    <div class="flex flex-col lg:flex-row lg:items-center gap-8 lg:gap-12">
       <!-- Left content -->
-      <div class="lg:col-span-5 text-center lg:text-left">
+      <div class="flex-1 text-center lg:text-left">
         <!-- Eyebrow -->
-        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-heavy mb-8 animate-fade-in">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-heavy mb-6 sm:mb-8 animate-fade-in">
           <span class="w-1.5 h-1.5 rounded-full bg-gold animate-pulse"></span>
-          <span class="font-body text-xs font-medium text-purple-mist/60 tracking-wide uppercase">Now in Early Access</span>
+          <span class="font-body text-[11px] sm:text-xs font-medium text-purple-mist/60 tracking-wide uppercase">Now in Early Access</span>
         </div>
 
-        <!-- Headline with character-split animation -->
-        <h1 class="font-heading font-black tracking-tight mb-8 leading-[0.9]">
-          <span class="char-line block text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] text-purple-mist">
+        <!-- Headline -->
+        <h1 class="font-heading font-black tracking-tight mb-5 sm:mb-8 leading-[0.9]">
+          <span class="char-line block text-[2rem] sm:text-4xl md:text-5xl lg:text-7xl text-purple-mist">
             <span class="char-wrap"><span class="char" style="--i:0">B</span></span><span class="char-wrap"><span class="char" style="--i:1">r</span></span><span class="char-wrap"><span class="char" style="--i:2">e</span></span><span class="char-wrap"><span class="char" style="--i:3">a</span></span><span class="char-wrap"><span class="char" style="--i:4">k</span></span><span class="char-wrap"><span class="char" style="--i:5">&nbsp;</span></span><span class="char-wrap"><span class="char" style="--i:6">t</span></span><span class="char-wrap"><span class="char" style="--i:7">h</span></span><span class="char-wrap"><span class="char" style="--i:8">e</span></span>
           </span>
-          <span class="char-line block text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] mt-2 hero-gradient-text">
+          <span class="char-line block text-[2rem] sm:text-4xl md:text-5xl lg:text-7xl mt-1 sm:mt-2 hero-gradient-text">
             <span class="char-wrap"><span class="char" style="--i:0">s</span></span><span class="char-wrap"><span class="char" style="--i:1">a</span></span><span class="char-wrap"><span class="char" style="--i:2">t</span></span><span class="char-wrap"><span class="char" style="--i:3">i</span></span><span class="char-wrap"><span class="char" style="--i:4">s</span></span><span class="char-wrap"><span class="char" style="--i:5">f</span></span><span class="char-wrap"><span class="char" style="--i:6">a</span></span><span class="char-wrap"><span class="char" style="--i:7">c</span></span><span class="char-wrap"><span class="char" style="--i:8">t</span></span><span class="char-wrap"><span class="char" style="--i:9">o</span></span><span class="char-wrap"><span class="char" style="--i:10">r</span></span><span class="char-wrap"><span class="char" style="--i:11">y</span></span><span class="char-wrap"><span class="char" style="--i:12">.</span></span>
           </span>
         </h1>
 
         <!-- Subhead -->
-        <p class="font-body text-lg sm:text-xl text-purple-mist/55 max-w-xl mx-auto lg:mx-0 mb-10 leading-relaxed animate-slide-up" style="animation-delay: 0.35s;">
+        <p class="font-body text-sm sm:text-lg md:text-xl text-purple-mist/55 max-w-xl mx-auto lg:mx-0 mb-6 sm:mb-10 leading-relaxed animate-slide-up" style="animation-delay: 0.35s;">
           The TODO app that reaches you on <span class="text-purple-mist/90 font-medium">WhatsApp</span>, <span class="text-purple-mist/90 font-medium">Telegram</span>, <span class="text-purple-mist/90 font-medium">Instagram</span>, and 4 more channels.
         </p>
 
-        <!-- CTAs — Pocketchange style with icon reveal -->
-        <div class="flex flex-col sm:flex-row items-center lg:items-start gap-4 animate-slide-up" style="animation-delay: 0.5s;">
+        <!-- CTAs -->
+        <div class="flex flex-col sm:flex-row items-center lg:items-start gap-3 sm:gap-4 animate-slide-up" style="animation-delay: 0.5s;">
           <a href="#" class="cta-btn cta-btn--primary group">
             <span class="cta-btn__text">
               <span class="font-heading font-bold text-sm text-gold">Get Started Free</span>
@@ -60,11 +62,11 @@
         </div>
 
         <!-- Social proof -->
-        <div class="mt-12 flex items-center justify-center lg:justify-start gap-5 animate-slide-up" style="animation-delay: 0.7s;">
-          <div class="flex -space-x-2.5">
+        <div class="mt-6 sm:mt-12 flex items-center justify-center lg:justify-start gap-4 sm:gap-5 animate-slide-up" style="animation-delay: 0.7s;">
+          <div class="flex -space-x-2">
             {[0,1,2,3,4].map((i) => (
               <div
-                class="w-9 h-9 rounded-full border-[2px] border-midnight flex items-center justify-center text-[11px] font-bold ring-1 ring-white/5"
+                class="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-[2px] border-midnight flex items-center justify-center text-[10px] sm:text-[11px] font-bold ring-1 ring-white/5"
                 style={`background: linear-gradient(135deg, hsl(${260 + i * 25}, 65%, ${45 + i * 4}%), hsl(${280 + i * 25}, 55%, ${35 + i * 4}%));`}
               >
                 {String.fromCharCode(65 + i)}
@@ -73,13 +75,13 @@
           </div>
           <div class="text-left">
             <p class="font-heading font-bold text-sm text-gold">2,000+</p>
-            <p class="font-body text-xs text-purple-mist/50">early access users</p>
+            <p class="font-body text-[11px] sm:text-xs text-purple-mist/50">early access users</p>
           </div>
         </div>
       </div>
 
-      <!-- Right side — 3-Phone Mockup -->
-      <div class="lg:col-span-7 flex justify-center lg:justify-end hero-phones-wrapper animate-scale-in" style="animation-delay: 0.4s;" aria-hidden="true">
+      <!-- Right side — 3-Phone Mockup (hidden on mobile) -->
+      <div class="hidden sm:flex flex-shrink-0 justify-center lg:justify-end hero-phones-wrapper animate-scale-in" style="animation-delay: 0.4s;" aria-hidden="true">
         <div class="hero-phones float-anim">
 
           <!-- Left Phone: Onboarding -->
@@ -197,9 +199,15 @@
                   </div>
                 </div>
                 <div class="phone-ui__ch-icons">
-                  <div class="phone-ui__ch-icon" style="background:#25D366;">W</div>
-                  <div class="phone-ui__ch-icon" style="background:#0088CC;">T</div>
-                  <div class="phone-ui__ch-icon" style="background:#E4405F;">I</div>
+                  <div class="phone-ui__ch-icon" style="background:#25D366;">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                  </div>
+                  <div class="phone-ui__ch-icon" style="background:#0088CC;">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0a12 12 0 00-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                  </div>
+                  <div class="phone-ui__ch-icon" style="background:#E4405F;">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                  </div>
                 </div>
                 <div class="phone-ui__nav phone-ui__nav--gold">
                   <span class="phone-ui__nav-item">⊞</span>
@@ -217,7 +225,7 @@
   </div>
 
   <!-- Scroll indicator — bouncing arrow -->
-  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-10 scroll-bounce-wrap">
+  <div class="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-10 scroll-bounce-wrap hidden sm:flex">
     <span class="font-body text-[10px] text-purple-mist/25 uppercase tracking-[0.25em]">Scroll</span>
     <div class="scroll-bounce-arrow">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -229,6 +237,9 @@
 
 <style>
   .hero-gradient-text {
+    color: #FFD700;
+  }
+  .hero-gradient-text .char {
     background: linear-gradient(135deg, #FFD700 0%, #B8860B 40%, #FFD700 60%, #6C5CE7 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -264,17 +275,20 @@
 
   /* ====== CTA Buttons (Pocketchange style) ====== */
   .cta-btn {
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0;
-    height: 56px;
-    padding: 0 28px;
+    min-height: 48px;
+    height: 52px;
+    padding: 0 24px;
     border-radius: 14px;
     overflow: hidden;
     position: relative;
     cursor: pointer;
     text-decoration: none;
     transition: all 0.5s cubic-bezier(0.430, 0.195, 0.020, 1.000);
+    white-space: nowrap;
   }
   .cta-btn--primary {
     background: rgba(15, 10, 26, 0.5);
@@ -773,10 +787,21 @@
     font-weight: 700;
   }
 
-  /* Hide side phones on mobile */
-  @media (max-width: 640px) {
+  /* Responsive phone visibility */
+  @media (max-width: 639px) {
     .phone--left, .phone--right { display: none; }
     .phone--main { transform: scale(1); }
+    .phone { width: 180px; border-radius: 24px; }
+    .hero-phones { gap: 0; }
+  }
+  @media (min-width: 640px) and (max-width: 767px) {
+    .phone--right { display: none; }
+    .phone--left { opacity: 0.6; transform: rotate(-5deg) translateX(8px); }
+    .phone--main { transform: scale(1.05); }
+    .phone { width: clamp(120px, 18vw, 170px); }
+  }
+  @media (max-width: 767px) {
+    .hero-phones-wrapper { max-width: 280px; margin-left: auto; margin-right: auto; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -848,11 +873,12 @@
   const particles = new THREE.Points(particleGeo, particleMat);
   scene.add(particles);
 
-  const clock = new THREE.Clock();
+  const timer = new THREE.Timer();
 
   function animate() {
     requestAnimationFrame(animate);
-    const time = clock.getElapsedTime();
+    timer.update();
+    const time = timer.getElapsed();
 
     const positions = particleGeo.attributes.position.array as Float32Array;
     for (let i = 0; i < particleCount; i++) {

@@ -16,7 +16,7 @@ const leftCol = faqs.filter((_, i) => i % 2 === 0);
 const rightCol = faqs.filter((_, i) => i % 2 !== 0);
 ---
 
-<section id="faq" class="relative py-28 sm:py-36">
+<section id="faq" class="relative py-16 sm:py-28 md:py-36">
   <div class="absolute inset-0 faq-bg-gradient"></div>
   <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet/10 to-transparent"></div>
 
@@ -28,7 +28,7 @@ const rightCol = faqs.filter((_, i) => i % 2 !== 0);
         <span class="font-body text-xs font-semibold text-gold uppercase tracking-[0.2em]">FAQ</span>
         <div class="w-8 h-px bg-gold"></div>
       </div>
-      <h2 class="font-heading font-bold text-4xl sm:text-5xl md:text-[3.5rem] text-purple-mist leading-[1.1] mb-6">
+      <h2 class="font-heading font-bold text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] text-purple-mist leading-[1.1] mb-4 sm:mb-6">
         Got questions?
       </h2>
       <p class="font-body text-lg text-purple-mist/50 max-w-md mx-auto">
@@ -37,20 +37,20 @@ const rightCol = faqs.filter((_, i) => i % 2 !== 0);
     </div>
 
     <!-- Two-column FAQ -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-5">
       <div class="space-y-4 reveal-children">
         {leftCol.map((faq) => (
           <details class="faq-item group rounded-xl border border-white/[0.04] hover:border-violet/15 transition-all duration-500">
-            <summary class="flex items-center justify-between gap-4 p-5 sm:p-6 cursor-pointer list-none font-heading font-semibold text-[15px] text-purple-mist/75 group-hover:text-purple-mist transition-colors duration-300 select-none">
+            <summary class="flex items-center justify-between gap-4 p-4 sm:p-5 md:p-6 cursor-pointer list-none font-heading font-semibold text-sm sm:text-[15px] text-purple-mist/75 group-hover:text-purple-mist transition-colors duration-300 select-none min-h-[44px]">
               <span>{faq.question}</span>
-              <div class="w-6 h-6 rounded-md bg-white/[0.03] flex items-center justify-center flex-shrink-0 group-open:bg-violet/10 transition-colors duration-300">
+              <div class="w-8 h-8 sm:w-6 sm:h-6 rounded-md bg-white/[0.03] flex items-center justify-center flex-shrink-0 group-open:bg-violet/10 transition-colors duration-300">
                 <svg class="w-3.5 h-3.5 text-purple-mist/30 group-open:text-violet faq-icon transition-all duration-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
               </div>
             </summary>
             <div class="faq-content">
-              <div class="px-5 sm:px-6 pb-5 sm:pb-6 pt-0">
+              <div class="px-4 sm:px-5 md:px-6 pb-4 sm:pb-5 md:pb-6 pt-0">
                 <div class="w-full h-px bg-white/[0.03] mb-4"></div>
                 <p class="font-body text-sm leading-relaxed text-purple-mist/55 max-w-prose">{faq.answer}</p>
               </div>
@@ -61,16 +61,16 @@ const rightCol = faqs.filter((_, i) => i % 2 !== 0);
       <div class="space-y-4 reveal-children">
         {rightCol.map((faq) => (
           <details class="faq-item group rounded-xl border border-white/[0.04] hover:border-violet/15 transition-all duration-500">
-            <summary class="flex items-center justify-between gap-4 p-5 sm:p-6 cursor-pointer list-none font-heading font-semibold text-[15px] text-purple-mist/75 group-hover:text-purple-mist transition-colors duration-300 select-none">
+            <summary class="flex items-center justify-between gap-4 p-4 sm:p-5 md:p-6 cursor-pointer list-none font-heading font-semibold text-sm sm:text-[15px] text-purple-mist/75 group-hover:text-purple-mist transition-colors duration-300 select-none min-h-[44px]">
               <span>{faq.question}</span>
-              <div class="w-6 h-6 rounded-md bg-white/[0.03] flex items-center justify-center flex-shrink-0 group-open:bg-violet/10 transition-colors duration-300">
+              <div class="w-8 h-8 sm:w-6 sm:h-6 rounded-md bg-white/[0.03] flex items-center justify-center flex-shrink-0 group-open:bg-violet/10 transition-colors duration-300">
                 <svg class="w-3.5 h-3.5 text-purple-mist/30 group-open:text-violet faq-icon transition-all duration-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
               </div>
             </summary>
             <div class="faq-content">
-              <div class="px-5 sm:px-6 pb-5 sm:pb-6 pt-0">
+              <div class="px-4 sm:px-5 md:px-6 pb-4 sm:pb-5 md:pb-6 pt-0">
                 <div class="w-full h-px bg-white/[0.03] mb-4"></div>
                 <p class="font-body text-sm leading-relaxed text-purple-mist/55 max-w-prose">{faq.answer}</p>
               </div>

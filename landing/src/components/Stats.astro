@@ -9,7 +9,7 @@ const stats = [
 const logos = ['Notion', 'Linear', 'Figma', 'Slack', 'GitHub'];
 ---
 
-<section class="relative py-24 sm:py-32 overflow-hidden">
+<section class="relative py-16 sm:py-24 md:py-32 overflow-hidden">
   <div class="absolute inset-0 bg-midnight"></div>
   <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet/10 to-transparent"></div>
   <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet/10 to-transparent"></div>
@@ -43,12 +43,12 @@ const logos = ['Notion', 'Linear', 'Figma', 'Slack', 'GitHub'];
     aria-hidden="true"
   ></div>
 
-  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-20">
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-8 sm:py-14 md:py-20">
     <!-- Stats grid -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6 reveal-children" style="perspective: 1000px;">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6 reveal-children" style="perspective: 1000px;">
       {stats.map((stat, i) => (
         <div
-          class="tilt-card relative rounded-2xl glass-heavy p-8 sm:p-12 text-center group overflow-hidden"
+          class="tilt-card relative rounded-2xl glass-heavy p-5 sm:p-8 md:p-12 text-center group overflow-hidden"
           style={`animation-delay: ${i * 100}ms;`}
         >
           <!-- Top gradient line -->
@@ -63,19 +63,19 @@ const logos = ['Notion', 'Linear', 'Figma', 'Slack', 'GitHub'];
           </div>
 
           <p
-            class="relative font-heading font-black text-4xl sm:text-5xl lg:text-6xl text-purple-mist mb-3 stat-number group-hover:text-gold transition-colors duration-500"
+            class="relative font-heading font-black text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-purple-mist mb-2 sm:mb-3 stat-number group-hover:text-gold transition-colors duration-500"
             data-target={stat.value}
             data-suffix={stat.suffix}
           >
             0{stat.suffix}
           </p>
-          <p class="relative font-body text-sm text-purple-mist/60">{stat.label}</p>
+          <p class="relative font-body text-xs sm:text-sm text-purple-mist/60">{stat.label}</p>
         </div>
       ))}
     </div>
 
     <!-- Ticker bar -->
-    <div class="mt-16 overflow-hidden border-y border-white/[0.04] py-3">
+    <div class="mt-10 sm:mt-16 overflow-hidden border-y border-white/[0.04] py-3">
       <div class="flex gap-8 animate-marquee whitespace-nowrap">
         {[
           { label: 'Tasks Completed', value: '1.2M+' },
@@ -101,11 +101,11 @@ const logos = ['Notion', 'Linear', 'Figma', 'Slack', 'GitHub'];
     </div>
 
     <!-- Integrations -->
-    <div class="mt-20 pt-12 border-t border-white/[0.03] reveal">
+    <div class="mt-12 sm:mt-20 pt-8 sm:pt-12 border-t border-white/[0.03] reveal">
       <p class="font-body text-xs text-purple-mist/20 text-center mb-8 uppercase tracking-[0.2em]">
         Plays well with tools you already use
       </p>
-      <div class="flex items-center justify-center gap-10 sm:gap-16">
+      <div class="flex flex-wrap items-center justify-center gap-6 sm:gap-10 md:gap-16">
         {logos.map((logo) => (
           <span class="font-heading font-semibold text-sm sm:text-base text-purple-mist/[0.12] hover:text-purple-mist/30 transition-colors duration-500 cursor-default">
             {logo}

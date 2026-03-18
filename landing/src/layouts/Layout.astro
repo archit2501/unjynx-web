@@ -261,11 +261,11 @@ const ogImage = `${Astro.site}og-image.png`;
       /* Scroll-to-top button */
       .scroll-top-btn {
         position: fixed;
-        bottom: 2rem;
-        right: 2rem;
+        bottom: 1rem;
+        right: 1rem;
         z-index: 100;
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         background: rgba(108, 92, 231, 0.9);
         color: white;
@@ -288,6 +288,15 @@ const ogImage = `${Astro.site}og-image.png`;
         box-shadow: 0 0 40px rgba(108, 92, 231, 0.4);
         transform: translateY(-3px);
         background: rgba(108, 92, 231, 1);
+      }
+
+      @media (min-width: 640px) {
+        .scroll-top-btn {
+          bottom: 2rem;
+          right: 2rem;
+          width: 48px;
+          height: 48px;
+        }
       }
 
       /* Reduced motion */
@@ -329,9 +338,10 @@ const ogImage = `${Astro.site}og-image.png`;
       );
       document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-children').forEach((el) => observer.observe(el));
 
-      // 3D tilt on glass cards
+      // 3D tilt on glass cards — disabled on touch devices
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (!prefersReducedMotion) {
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      if (!prefersReducedMotion && !isTouchDevice) {
         document.querySelectorAll('.tilt-card').forEach((card) => {
           const el = card as HTMLElement;
           el.addEventListener('mousemove', (e) => {
