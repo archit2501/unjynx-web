@@ -1,0 +1,92 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install landing dependencies
+        working-directory: landing
+        run: pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+
+      - name: Build landing page (Astro)
+        working-directory: landing
+        run: pnpm build
+
+      - name: Install admin dependencies
+        working-directory: admin
+        run: pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+
+      - name: Build admin panel (Vite)
+        working-directory: admin
+        run: pnpm build
+        env:
+          VITE_API_URL: https://api.unjynx.me/api/v1
+          VITE_LOGTO_ENDPOINT: https://auth.unjynx.me
+          VITE_LOGTO_APP_ID: unjynx-admin-web
+
+      - name: Install dev-portal dependencies
+        working-directory: dev-portal
+        run: pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+
+      - name: Build dev portal (Vite)
+        working-directory: dev-portal
+        run: pnpm build
+        env:
+          VITE_API_URL: https://api.unjynx.me/api/v1
+          VITE_LOGTO_ENDPOINT: https://auth.unjynx.me
+          VITE_LOGTO_APP_ID: unjynx-dev-portal
+
+      - name: Merge builds into single output
+        run: |
+          mkdir -p _site
+          cp -r landing/dist/* _site/
+          mkdir -p _site/admin
+          cp -r admin/dist/* _site/admin/
+          mkdir -p _site/dev
+          cp -r dev-portal/dist/* _site/dev/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
