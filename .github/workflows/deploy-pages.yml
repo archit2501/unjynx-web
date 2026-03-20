@@ -47,6 +47,7 @@ jobs:
         working-directory: admin
         run: pnpm build
         env:
+          BASE_PATH: /admin/
           VITE_API_URL: https://api.unjynx.me/api/v1
           VITE_LOGTO_ENDPOINT: https://auth.unjynx.me
           VITE_LOGTO_APP_ID: unjynx-admin-web
@@ -59,6 +60,7 @@ jobs:
         working-directory: dev-portal
         run: pnpm build
         env:
+          BASE_PATH: /dev/
           VITE_API_URL: https://api.unjynx.me/api/v1
           VITE_LOGTO_ENDPOINT: https://auth.unjynx.me
           VITE_LOGTO_APP_ID: unjynx-dev-portal
