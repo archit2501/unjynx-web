@@ -11,6 +11,8 @@ export const userManager = new UserManager({
   post_logout_redirect_uri: LOGTO_CONFIG.postLogoutRedirectUri,
   scope: LOGTO_CONFIG.scopes.join(" "),
   response_type: "code",
+  // SPA = public client — must NOT send client_secret
+  client_authentication: "none",
   userStore: new WebStorageStateStore({ store: window.localStorage }),
   // Request JWT (not opaque) by specifying the API resource
   extraQueryParams: { resource: LOGTO_CONFIG.resource },
@@ -19,13 +21,14 @@ export const userManager = new UserManager({
 });
 
 /**
- * Map backend admin_role enum to frontend AdminRole type.
- * DB values: "user" | "super_admin" | "dev_admin"
- * Frontend values: "SUPER_ADMIN" | "CONTENT_MANAGER" | "SUPPORT_AGENT" | "VIEWER"
+ * Map backend admin_role enum to frontend role.
+ * DB values: "owner" | "admin" | "member" | "viewer" | "guest"
+ * The role is passed through as-is (1:1 mapping).
+ * Only owner and admin have admin portal access.
  */
 function mapAdminRole(dbRole: string | null | undefined): string {
-  if (dbRole === "super_admin" || dbRole === "dev_admin") return "SUPER_ADMIN";
-  return "VIEWER";
+  if (dbRole === "owner" || dbRole === "admin") return dbRole;
+  return "member"; // no admin access
 }
 
 /**
@@ -108,8 +111,8 @@ export const authProvider: AuthProvider = {
         }
       }
 
-      if (role === "VIEWER") {
-        // "VIEWER" means the user has no admin role — deny access
+      if (role === "member") {
+        // "member" means the user has no admin role — deny access
         localStorage.removeItem(ADMIN_ROLE_KEY);
         await userManager.removeUser();
         return {
@@ -133,7 +136,7 @@ export const authProvider: AuthProvider = {
     const user = await userManager.getUser();
     if (!user) return null;
 
-    const role = localStorage.getItem(ADMIN_ROLE_KEY) ?? "VIEWER";
+    const role = localStorage.getItem(ADMIN_ROLE_KEY) ?? "member";
 
     return {
       id: user.profile.sub,
@@ -145,7 +148,7 @@ export const authProvider: AuthProvider = {
   },
 
   getPermissions: async () => {
-    return localStorage.getItem(ADMIN_ROLE_KEY) ?? "VIEWER";
+    return localStorage.getItem(ADMIN_ROLE_KEY) ?? "member";
   },
 
   onError: async (error) => {
