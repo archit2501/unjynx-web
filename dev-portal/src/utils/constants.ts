@@ -67,6 +67,9 @@ const origin = typeof window !== "undefined" ? window.location.origin : "http://
 export const LOGTO_CONFIG = {
   authority: `${logtoEndpoint}/oidc`,
   clientId: import.meta.env.VITE_LOGTO_APP_ID ?? "unjynx-dev-portal",
+  // Logto assigns a secret to all app types including SPAs.
+  // oidc-client-ts must send it during token exchange or Logto rejects.
+  clientSecret: import.meta.env.VITE_LOGTO_CLIENT_SECRET ?? "UnjynxDevPortalSecret2026",
   redirectUri: `${origin}${basePath}callback`,
   postLogoutRedirectUri: `${origin}${basePath}`,
   scopes: ["openid", "profile", "email", "roles"],
