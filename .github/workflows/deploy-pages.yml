@@ -75,14 +75,21 @@ jobs:
           mkdir -p _site/dev
           cp -r dev-portal/dist/* _site/dev/
 
-      - name: SPA fallback for GitHub Pages
+      - name: SPA route fallbacks for GitHub Pages
         run: |
-          # GitHub Pages serves 404.html for missing routes.
-          # Copy index.html as 404.html so the SPA router handles all paths
-          # (e.g., /admin/callback, /dev/callback).
-          cp _site/admin/index.html _site/admin/404.html
-          cp _site/dev/index.html _site/dev/404.html
-          # Root-level 404 falls back to landing page
+          # GitHub Pages only uses root-level 404.html.
+          # For SPA sub-routes, create physical index.html copies at known routes.
+          # Admin portal routes:
+          for route in callback login users content notifications feature-flags analytics support billing compliance; do
+            mkdir -p "_site/admin/$route"
+            cp _site/admin/index.html "_site/admin/$route/index.html"
+          done
+          # Dev portal routes:
+          for route in callback login; do
+            mkdir -p "_site/dev/$route"
+            cp _site/dev/index.html "_site/dev/$route/index.html"
+          done
+          # Root 404 fallback to landing
           cp _site/index.html _site/404.html
 
       - name: Setup Pages
