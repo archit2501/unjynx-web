@@ -51,6 +51,7 @@ jobs:
           VITE_API_URL: https://api.unjynx.me
           VITE_LOGTO_ENDPOINT: https://auth.unjynx.me
           VITE_LOGTO_APP_ID: unjynx-admin-web
+          VITE_LOGTO_CLIENT_SECRET: UnjynxAdminWebSecret2026
 
       - name: Install dev-portal dependencies
         working-directory: dev-portal
@@ -73,6 +74,16 @@ jobs:
           cp -r admin/dist/* _site/admin/
           mkdir -p _site/dev
           cp -r dev-portal/dist/* _site/dev/
+
+      - name: SPA fallback for GitHub Pages
+        run: |
+          # GitHub Pages serves 404.html for missing routes.
+          # Copy index.html as 404.html so the SPA router handles all paths
+          # (e.g., /admin/callback, /dev/callback).
+          cp _site/admin/index.html _site/admin/404.html
+          cp _site/dev/index.html _site/dev/404.html
+          # Root-level 404 falls back to landing page
+          cp _site/index.html _site/404.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
