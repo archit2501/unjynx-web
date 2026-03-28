@@ -1,0 +1,223 @@
+/* ===================================================================
+   UNJYNX Cinematic Hero — Scoped Styles
+   =================================================================== */
+
+/* GSAP initial state — elements hidden until animated */
+.gsapHidden { visibility: hidden; }
+
+/* ---- Environment Overlays ---- */
+.filmGrain {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 50; opacity: 0.05; mix-blend-mode: overlay;
+  background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)"/></svg>');
+}
+
+.bgGrid {
+  background-size: 60px 60px;
+  background-image:
+    linear-gradient(to right, rgba(108, 92, 231, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(108, 92, 231, 0.06) 1px, transparent 1px);
+  mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+}
+
+/* ---- Text Effects ---- */
+.text3dMatte {
+  color: #F8F5FF;
+  text-shadow:
+    0 10px 30px rgba(255, 215, 0, 0.15),
+    0 2px 4px rgba(108, 92, 231, 0.1);
+}
+
+.textGoldMatte {
+  background: linear-gradient(180deg, #FFD700 0%, #B8860B 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transform: translateZ(0);
+  filter:
+    drop-shadow(0px 10px 20px rgba(255, 215, 0, 0.2))
+    drop-shadow(0px 2px 4px rgba(255, 215, 0, 0.15));
+}
+
+.textVioletMatte {
+  background: linear-gradient(180deg, #F8F5FF 0%, rgba(108, 92, 231, 0.6) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transform: translateZ(0);
+  filter:
+    drop-shadow(0px 10px 20px rgba(108, 92, 231, 0.15))
+    drop-shadow(0px 2px 4px rgba(248, 245, 255, 0.1));
+}
+
+.textCardSilver {
+  background: linear-gradient(180deg, #FFFFFF 0%, #A1A1AA 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transform: translateZ(0);
+  filter:
+    drop-shadow(0px 12px 24px rgba(0, 0, 0, 0.8))
+    drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.6));
+}
+
+/* ---- Premium Depth Card ---- */
+.premiumCard {
+  background: linear-gradient(145deg, #251738 0%, #0F0A1A 100%);
+  box-shadow:
+    0 40px 100px -20px rgba(0, 0, 0, 0.9),
+    0 20px 40px -20px rgba(0, 0, 0, 0.8),
+    inset 0 1px 2px rgba(108, 92, 231, 0.15),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(108, 92, 231, 0.08);
+  position: relative;
+}
+
+.cardSheen {
+  position: absolute; inset: 0; border-radius: inherit;
+  pointer-events: none; z-index: 50;
+  background: radial-gradient(
+    800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(255, 215, 0, 0.04) 0%, transparent 40%
+  );
+  mix-blend-mode: screen;
+  transition: opacity 0.3s ease;
+}
+
+/* ---- iPhone Bezel ---- */
+.iphoneBezel {
+  background-color: #111;
+  box-shadow:
+    inset 0 0 0 2px #52525B,
+    inset 0 0 0 7px #000,
+    0 40px 80px -15px rgba(0, 0, 0, 0.9),
+    0 15px 25px -5px rgba(0, 0, 0, 0.7);
+  transform-style: preserve-3d;
+}
+
+.hardwareBtn {
+  background: linear-gradient(90deg, #404040 0%, #171717 100%);
+  box-shadow:
+    -2px 0 5px rgba(0, 0, 0, 0.8),
+    inset -1px 0 1px rgba(255, 255, 255, 0.15),
+    inset 1px 0 2px rgba(0, 0, 0, 0.8);
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.screenGlare {
+  background: linear-gradient(110deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 45%);
+}
+
+.widgetDepth {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  box-shadow:
+    0 10px 20px rgba(0, 0, 0, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* ---- Floating Badge ---- */
+.floatingBadge {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.01) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow:
+    0 0 0 1px rgba(108, 92, 231, 0.15),
+    0 25px 50px -12px rgba(0, 0, 0, 0.8),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- Tactile Buttons ---- */
+.btnLight, .btnDark {
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+              box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.btnLight {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
+  color: #0F0A1A;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.05),
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 12px 24px -4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 1),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.06);
+}
+.btnLight:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 0 0 1px rgba(255, 215, 0, 0.3),
+    0 6px 12px -2px rgba(255, 215, 0, 0.15),
+    0 20px 32px -6px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 1),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.06);
+}
+.btnLight:active {
+  transform: translateY(1px);
+  background: linear-gradient(180deg, #F1F5F9 0%, #E2E8F0 100%);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    inset 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btnDark {
+  background: linear-gradient(180deg, #251738 0%, #1A1029 100%);
+  color: #F8F5FF;
+  box-shadow:
+    0 0 0 1px rgba(108, 92, 231, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.6),
+    0 12px 24px -4px rgba(0, 0, 0, 0.9),
+    inset 0 1px 1px rgba(108, 92, 231, 0.15),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.8);
+}
+.btnDark:hover {
+  transform: translateY(-3px);
+  background: linear-gradient(180deg, #352248 0%, #251738 100%);
+  box-shadow:
+    0 0 0 1px rgba(108, 92, 231, 0.3),
+    0 6px 12px -2px rgba(108, 92, 231, 0.2),
+    0 20px 32px -6px rgba(0, 0, 0, 1),
+    inset 0 1px 1px rgba(108, 92, 231, 0.2),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.8);
+}
+.btnDark:active {
+  transform: translateY(1px);
+  background: #1A1029;
+  box-shadow:
+    0 0 0 1px rgba(108, 92, 231, 0.1),
+    inset 0 3px 8px rgba(0, 0, 0, 0.9);
+}
+
+/* ---- Progress Ring ---- */
+.progressRing {
+  transform: rotate(-90deg);
+  transform-origin: center;
+  stroke-dasharray: 402;
+  stroke-dashoffset: 402;
+  stroke-linecap: round;
+}
+
+/* ---- Ambient Glow (unique to UNJYNX) ---- */
+.ambientGlow {
+  position: absolute;
+  width: 300px; height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.08) 0%, rgba(108, 92, 231, 0.04) 50%, transparent 70%);
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* ---- Reduced Motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .gsapHidden { visibility: visible !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
