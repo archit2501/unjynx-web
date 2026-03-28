@@ -51,7 +51,6 @@ jobs:
           VITE_API_URL: https://api.unjynx.me
           VITE_LOGTO_ENDPOINT: https://auth.unjynx.me
           VITE_LOGTO_APP_ID: unjynx-admin-web
-          VITE_LOGTO_CLIENT_SECRET: UnjynxAdminWebSecret2026
 
       - name: Install dev-portal dependencies
         working-directory: dev-portal
